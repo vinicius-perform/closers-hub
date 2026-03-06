@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
 import {
   FileText,
-  Calendar,
+  Calendar as CalendarIcon,
   User,
   DollarSign,
   Building2,
@@ -15,28 +15,50 @@ import {
   BarChart3,
   CheckCircle2,
   PieChart,
-  Activity
+  ChevronDown,
+  LayoutDashboard
 } from 'lucide-react';
 
+import { DayPicker, DateRange } from 'react-day-picker';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
 export default function FACloserHub() {
-  const [reportType, setReportType] = useState<'novas' | 'cadencia'>('novas');
   const [isGenerating, setIsGenerating] = useState(false);
   const [pdfGenerated, setPdfGenerated] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Date Range State
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: new Date(),
+    to: new Date()
+  });
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const calendarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
+        setIsCalendarOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   // Form State
   const [formData, setFormData] = useState({
     operacao: '',
-    dataInicial: new Date().toISOString().split('T')[0],
-    dataFinal: new Date().toISOString().split('T')[0],
     closer: '',
-    // Relatório de Oportunidades Novas
+
+    // Oportunidades Novas
     orcamentosNovos: '',
     valorOrcamentosNovos: '',
     qtdFechadoNovas: '',
     valorContratoNovas: '',
     valorRecebidoNovas: '',
-    // Relatório de Cadência
+
+    // Cadência
     qtdFollow: '',
     valorFollow: '',
     qtdFechadoCadencia: '',
@@ -71,20 +93,41 @@ export default function FACloserHub() {
 
   const validateForm = () => {
     if (!formData.operacao || formData.operacao === '') return 'Selecione uma operação válida.';
-    if (!formData.dataInicial || !formData.dataFinal) return 'O período das métricas é obrigatório.';
+    if (!dateRange?.from || !dateRange?.to) return 'Selecione o período inicial e final das métricas.';
     if (!formData.closer) return 'Preencha o nome do Closer responsável.';
 
-    if (reportType === 'novas') {
-      if (!formData.orcamentosNovos || !formData.valorOrcamentosNovos || !formData.qtdFechadoNovas || !formData.valorContratoNovas || !formData.valorRecebidoNovas) {
-        return 'Preencha todos os campos métricos de Oportunidades Novas.';
-      }
-    } else {
-      if (!formData.qtdFollow || !formData.valorFollow || !formData.qtdFechadoCadencia || !formData.valorContratoCadencia || !formData.valorRecebidoCadencia) {
-        return 'Preencha todos os campos métricos de Cadência.';
-      }
+    // Validação Oportunidades
+    if (!formData.orcamentosNovos || !formData.valorOrcamentosNovos || !formData.qtdFechadoNovas || !formData.valorContratoNovas || !formData.valorRecebidoNovas) {
+      return 'Preencha todos os campos métricos de Oportunidades Novas.';
+    }
+
+    // Validação Cadência
+    if (!formData.qtdFollow || !formData.valorFollow || !formData.qtdFechadoCadencia || !formData.valorContratoCadencia || !formData.valorRecebidoCadencia) {
+      return 'Preencha todos os campos métricos de Cadência de Follow.';
     }
 
     return null;
+  };
+
+  const formatPeriod = () => {
+    if (!dateRange?.from) return "Selecionar Período";
+    if (dateRange.from && !dateRange.to) {
+      return format(dateRange.from, 'dd/MM/yyyy');
+    }
+    if (dateRange.from && dateRange.to) {
+      if (dateRange.from.getTime() === dateRange.to.getTime()) {
+        return format(dateRange.from, 'dd/MM/yyyy');
+      }
+      return `${format(dateRange.from, 'dd/MM/yyyy')} - ${format(dateRange.to, 'dd/MM/yyyy')}`;
+    }
+    return "";
+  };
+
+  const getPdfSafePeriodString = () => {
+    if (!dateRange?.from || !dateRange?.to) return '';
+    const fromStr = format(dateRange.from, 'dd-MM-yyyy');
+    const toStr = format(dateRange.to, 'dd-MM-yyyy');
+    return fromStr === toStr ? fromStr : `${fromStr}_a_${toStr}`;
   };
 
   const generatePDF = async () => {
@@ -98,20 +141,18 @@ export default function FACloserHub() {
     setError(null);
 
     try {
-      // Usar slight delay para mostrar estado de "loading" refinado
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      await new Promise((resolve) => setTimeout(resolve, 800));
 
       const doc = new jsPDF();
 
-      // Cores FA Brand Identity (Preto e Branco Puro)
       const primaryColor = [10, 10, 10]; // #0A0A0A
       const accentColor = [0, 0, 0]; // Black
 
-      // Header Background (Deep Black)
+      // Header Background
       doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
       doc.rect(0, 0, 210, 40, 'F');
 
-      // Logo FA Simulado 
+      // Logo FA
       doc.setFillColor(255, 255, 255);
       doc.rect(14, 18, 12, 12, 'F');
       doc.setTextColor(0, 0, 0);
@@ -119,21 +160,21 @@ export default function FACloserHub() {
       doc.setFont('helvetica', 'bold');
       doc.text('FA', 16.5, 26);
 
-      // Header Texts
+      // Header Titles
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text('Closer Hub | Relatório', 32, 26);
+      doc.text('Relatório Comercial Consolidado', 32, 26);
 
       doc.setFontSize(9);
       doc.setTextColor(150, 150, 150);
-      doc.text('EXPORTAÇÃO AUTOMATIZADA', 145, 24);
+      doc.text('CLOSER HUB REPORT', 158, 24);
 
-      // Metadata section
+      // Metadata (Block 1)
       doc.setTextColor(0, 0, 0);
       doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
-      doc.text('INFORMAÇÕES GERAIS', 14, 55);
+      doc.text('INFORMAÇÕES DA OPERAÇÃO', 14, 55);
 
       doc.setDrawColor(220, 220, 220);
       doc.setLineWidth(0.5);
@@ -146,61 +187,64 @@ export default function FACloserHub() {
       doc.text(formData.operacao, 55, 68);
 
       doc.setFont('helvetica', 'bold');
-      doc.text('Período:', 14, 76);
+      doc.text('Período das Métricas:', 14, 76);
       doc.setFont('helvetica', 'normal');
-      const dataFormatada = formData.dataInicial === formData.dataFinal
-        ? formData.dataInicial.split('-').reverse().join('/')
-        : `${formData.dataInicial.split('-').reverse().join('/')} a ${formData.dataFinal.split('-').reverse().join('/')}`;
-      doc.text(dataFormatada, 55, 76);
+      doc.text(formatPeriod(), 55, 76);
 
       doc.setFont('helvetica', 'bold');
       doc.text('Closer Responsável:', 14, 84);
       doc.setFont('helvetica', 'normal');
       doc.text(formData.closer, 55, 84);
 
-      // Report Type Title
-      doc.setFontSize(13);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
-      const title = reportType === 'novas' ? 'RELATÓRIO DE OPORTUNIDADES NOVAS' : 'RELATÓRIO DE CADÊNCIA';
-      doc.text(title, 14, 105);
+      // Helper function for table headers
+      const drawTableHeader = (title: string, yPos: number) => {
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
+        doc.text(title, 14, yPos);
 
-      // Data Table Setup
-      doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.rect(14, 115, 182, 10, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.text('MÉTRICA', 18, 121.5);
-      doc.text('VALOR', 120, 121.5);
+        const tableY = yPos + 6;
+        doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.rect(14, tableY, 182, 10, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text('MÉTRICA', 18, tableY + 6.5);
+        doc.text('VALOR', 120, tableY + 6.5);
 
-      doc.setTextColor(40, 40, 40);
-      doc.setFont('helvetica', 'normal');
-      let startY = 132;
+        return tableY + 17; // return starting Y for rows
+      };
 
+      // Helper function for row drawing
+      let currentY = 0;
       const drawRow = (label: string, value: string, isAlternate: boolean) => {
         if (isAlternate) {
           doc.setFillColor(245, 245, 245);
-          doc.rect(14, startY - 6, 182, 10, 'F');
+          doc.rect(14, currentY - 6, 182, 10, 'F');
         }
-        doc.text(label, 18, startY);
-        doc.text(value, 120, startY);
-        startY += 10;
+        doc.setTextColor(40, 40, 40);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text(label, 18, currentY);
+        doc.text(value, 120, currentY);
+        currentY += 10;
       };
 
-      if (reportType === 'novas') {
-        drawRow('Orçamentos Novos', formData.orcamentosNovos, false);
-        drawRow('Valor dos Orçamentos Novos', formData.valorOrcamentosNovos, true);
-        drawRow('Quantidade de Orçamentos Fechados', formData.qtdFechadoNovas, false);
-        drawRow('Valor do Contrato', formData.valorContratoNovas, true);
-        drawRow('Valor Recebido (Cash Coletado)', formData.valorRecebidoNovas, false);
-      } else {
-        drawRow('Quantidade de Follows', formData.qtdFollow, false);
-        drawRow('Valor Ofertado em Follow', formData.valorFollow, true);
-        drawRow('Quantidade de Orçamentos Fechados', formData.qtdFechadoCadencia, false);
-        drawRow('Valor do Contrato', formData.valorContratoCadencia, true);
-        drawRow('Valor Recebido (Cash Coletado)', formData.valorRecebidoCadencia, false);
-      }
+      // Table 1: Oportunidades Novas
+      currentY = drawTableHeader('MÉTRICAS DE OPORTUNIDADES NOVAS', 103);
+      drawRow('Orçamentos Novos', formData.orcamentosNovos, false);
+      drawRow('Valor dos Orçamentos Novos', formData.valorOrcamentosNovos, true);
+      drawRow('Quantidade de Orçamentos Fechados', formData.qtdFechadoNovas, false);
+      drawRow('Valor do Contrato', formData.valorContratoNovas, true);
+      drawRow('Valor Recebido (Cash Coletado)', formData.valorRecebidoNovas, false);
+
+      // Table 2: Cadência de Follow
+      currentY = drawTableHeader('MÉTRICAS DE CADÊNCIA DE FOLLOW', currentY + 12);
+      drawRow('Quantidade de Follows Realizados', formData.qtdFollow, false);
+      drawRow('Valor Ofertado em Follow', formData.valorFollow, true);
+      drawRow('Quantidade de Orçamentos Fechados', formData.qtdFechadoCadencia, false);
+      drawRow('Valor do Contrato', formData.valorContratoCadencia, true);
+      drawRow('Valor Recebido (Cash Coletado)', formData.valorRecebidoCadencia, false);
 
       // Footer
       doc.setFontSize(8);
@@ -208,13 +252,13 @@ export default function FACloserHub() {
       doc.text('Gerado automaticamente pelo sistema FA Closer Hub | Documento Corporativo Interno', 14, 280);
 
       const cleanOpName = formData.operacao.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-      const periodoStr = formData.dataInicial === formData.dataFinal ? formData.dataInicial : `${formData.dataInicial}_a_${formData.dataFinal}`;
-      doc.save(`Relatorio-${cleanOpName}-${periodoStr}.pdf`);
+      const periodoStr = getPdfSafePeriodString();
+      doc.save(`Relatorio_Consolidado-${cleanOpName}-${periodoStr}.pdf`);
 
       setPdfGenerated(true);
     } catch (err) {
       console.error(err);
-      setError('Ocorreu um erro ao gerar o PDF. Verifique os dados ou o console.');
+      setError('Ocorreu um erro ao gerar o PDF. Verifique os dados fornecidos.');
     } finally {
       setIsGenerating(false);
     }
@@ -228,54 +272,36 @@ export default function FACloserHub() {
         <div className="absolute inset-0 bg-grid-pattern [mask-image:radial-gradient(ellipse_at_center,white,transparent_80%)] animate-grid-scroll"></div>
       </div>
 
-      {/* Very faint neutral glow in background core */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-white/[0.015] blur-[100px] rounded-full pointer-events-none z-0"></div>
 
-      {/* Main Container - FA Corporativo */}
-      <div className="w-full max-w-6xl flex flex-col md:flex-row relative z-10 bg-[#080808] border border-white/[0.08] shadow-2xl shadow-black rounded-[24px] overflow-hidden min-h-[750px] h-[88vh]">
+      {/* Main Container */}
+      <div className="w-full max-w-6xl flex flex-col md:flex-row relative z-10 bg-[#080808] border border-white/[0.08] shadow-2xl shadow-black rounded-[24px] overflow-hidden min-h-[750px] h-[92vh] max-h-[1200px]">
 
-        {/* Sidebar */}
-        <aside className="w-full md:w-[280px] bg-[#0A0A0A] border-r border-white/[0.05] p-6 lg:p-8 flex flex-col h-full shrink-0">
+        {/* Sidebar Nova (Apenas Institucional) */}
+        <aside className="w-full md:w-[280px] bg-[#0A0A0A] border-r border-white/[0.05] p-6 lg:p-8 flex flex-col shrink-0 flex-none">
 
-          {/* Logo Section */}
           <div className="mb-12 flex items-center gap-4">
             <div className="w-10 h-10 bg-white rounded flex items-center justify-center text-black font-bold tracking-tighter text-lg shadow-[0_0_15px_rgba(255,255,255,0.1)]">
               FA
             </div>
-            <h1 className="text-xl font-semibold tracking-tight text-white/90">
-              Closer Hub
-            </h1>
+            <div>
+              <h1 className="text-xl font-semibold tracking-tight text-white/90 leading-tight">
+                Closer Hub
+              </h1>
+            </div>
           </div>
 
-          {/* Navigation */}
           <div className="space-y-3 flex-1">
             <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest px-2 mb-4">Relatórios Corporativos</p>
 
-            <button
-              onClick={() => setReportType('novas')}
-              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 group ${reportType === 'novas'
-                  ? 'bg-white/[0.08] border border-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.02)]'
-                  : 'bg-transparent border border-transparent text-gray-400 hover:bg-white/[0.03] hover:text-gray-200'
-                }`}
-            >
-              <Activity size={18} className={reportType === 'novas' ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'} />
-              <span className="font-medium text-sm tracking-wide">Oportunidades</span>
-            </button>
-
-            <button
-              onClick={() => setReportType('cadencia')}
-              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 group ${reportType === 'cadencia'
-                  ? 'bg-white/[0.08] border border-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.02)]'
-                  : 'bg-transparent border border-transparent text-gray-400 hover:bg-white/[0.03] hover:text-gray-200'
-                }`}
-            >
-              <BarChart3 size={18} className={reportType === 'cadencia' ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'} />
-              <span className="font-medium text-sm tracking-wide">Cadência</span>
-            </button>
+            <div className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 bg-white/[0.05] border border-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.01)]">
+              <LayoutDashboard size={18} className="text-white" />
+              <span className="font-medium text-sm tracking-wide">Relatório Consolidado</span>
+            </div>
           </div>
 
           {/* User Profile */}
-          <div className="mt-auto pt-6 flex items-center gap-3 px-2 opacity-80 hover:opacity-100 transition-opacity cursor-default">
+          <div className="mt-8 pt-6 flex items-center gap-3 px-2 opacity-80 hover:opacity-100 transition-opacity cursor-default border-white/[0.05]">
             <div className="w-9 h-9 rounded-full bg-white/[0.05] flex items-center justify-center border border-white/[0.05]">
               <User size={15} className="text-white/60" />
             </div>
@@ -288,13 +314,18 @@ export default function FACloserHub() {
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto px-6 py-8 md:p-12 custom-scrollbar relative bg-[#050505]">
-          <div className="w-full max-w-3xl mx-auto space-y-8 pb-10">
+          <div className="w-full max-w-4xl mx-auto space-y-8 pb-10">
 
-            {/* Card Form 1: Informações Gerais */}
+            <div className="mb-4">
+              <h1 className="text-2xl font-semibold tracking-tight text-white">Preenchimento de Relatório</h1>
+              <p className="text-white/40 text-sm mt-1">Preencha os três blocos abaixo para gerar o PDF corporativo consolidado.</p>
+            </div>
+
+            {/* BLOCK 1: Informações da Operação */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} /* Custom spring-like ease */
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
               className="bg-[#0D0D0D] border border-white/[0.06] rounded-2xl p-6 md:p-8"
             >
               <h2 className="text-[15px] font-semibold mb-6 text-white/90 flex items-center gap-2 tracking-wide">
@@ -304,10 +335,10 @@ export default function FACloserHub() {
 
               <div className="flex flex-col gap-6">
 
-                {/* 1st row: Operação e Datas formam um bloco coeso no Desktop */}
-                <div className="flex flex-col md:flex-row gap-6">
+                <div className="flex flex-col lg:flex-row gap-6">
+
                   {/* Select Operação */}
-                  <div className="w-full md:w-5/12 space-y-2">
+                  <div className="w-full lg:w-5/12 space-y-2">
                     <label className="text-[13px] font-medium text-white/50 tracking-wide uppercase">Nome da Operação</label>
                     <div className="relative group">
                       <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/60 transition-colors" size={16} />
@@ -315,46 +346,117 @@ export default function FACloserHub() {
                         name="operacao"
                         value={formData.operacao}
                         onChange={handleChange}
-                        className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-10 pr-4 text-white/90 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all appearance-none cursor-pointer"
+                        className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-10 pr-4 text-white/90 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all appearance-none cursor-pointer hover:border-white/20"
                       >
                         <option value="" disabled className="text-gray-500">Selecione uma operação</option>
                         <option value="Bodyplastia">Bodyplastia</option>
                         <option value="Dr. Marcelo">Dr. Marcelo</option>
                         <option value="Dra. Marcela">Dra. Marcela</option>
                       </select>
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" size={16} />
                     </div>
                   </div>
 
-                  {/* Dates */}
-                  <div className="w-full md:w-7/12 space-y-2">
-                    <label className="text-[13px] font-medium text-white/50 tracking-wide uppercase">Data das Métricas</label>
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <div className="relative w-full group">
-                        <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/60 transition-colors pointer-events-none" size={15} />
-                        <input
-                          type="date"
-                          name="dataInicial"
-                          value={formData.dataInicial}
-                          onChange={handleChange}
-                          className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-9 pr-2 sm:pr-4 text-white/90 text-[13px] sm:text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all [color-scheme:dark]"
-                        />
+                  {/* PREMIUM DATE RANGE PICKER */}
+                  <div className="w-full lg:w-7/12 space-y-2 relative" ref={calendarRef}>
+                    <label className="text-[13px] font-medium text-white/50 tracking-wide uppercase">Período das Métricas</label>
+                    <button
+                      onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+                      className={`w-full flex items-center justify-between bg-[#030303] border rounded-xl py-3.5 px-3.5 text-sm transition-all focus:outline-none hover:border-white/20 ${isCalendarOpen ? 'border-white/30 ring-1 ring-white/20' : 'border-white/10'
+                        }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <CalendarIcon size={16} className={`transition-colors ${isCalendarOpen ? 'text-white/80' : 'text-white/30'}`} />
+                        <span className={dateRange?.from ? 'text-white/90' : 'text-white/30'}>
+                          {formatPeriod()}
+                        </span>
                       </div>
-                      <span className="text-white/30 text-xs sm:text-sm font-medium px-1">até</span>
-                      <div className="relative w-full group">
-                        <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/60 transition-colors pointer-events-none" size={15} />
-                        <input
-                          type="date"
-                          name="dataFinal"
-                          value={formData.dataFinal}
-                          onChange={handleChange}
-                          className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-9 pr-2 sm:pr-4 text-white/90 text-[13px] sm:text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all [color-scheme:dark]"
-                        />
-                      </div>
-                    </div>
+                      <ChevronDown size={16} className={`text-white/30 transition-transform ${isCalendarOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    <AnimatePresence>
+                      {isCalendarOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 5, scale: 0.98 }}
+                          transition={{ duration: 0.2 }}
+                          className="absolute z-50 top-[76px] left-0 mt-2 p-4 bg-[#0A0A0A] border border-white/[0.08] rounded-2xl shadow-2xl shadow-black"
+                        >
+                          <style dangerouslySetInnerHTML={{
+                            __html: `
+                            .rdp {
+                              --rdp-cell-size: 40px;
+                              --rdp-accent-color: #ffffff;
+                              --rdp-background-color: rgba(255, 255, 255, 0.1);
+                              --rdp-accent-color-dark: #ffffff;
+                              --rdp-background-color-dark: rgba(255, 255, 255, 0.15);
+                              --rdp-outline: 2px solid var(--rdp-accent-color); 
+                              --rdp-outline-selected: 2px solid var(--rdp-accent-color);
+                              margin: 0;
+                            }
+                            .rdp-day_selected, .rdp-day_selected:focus-visible, .rdp-day_selected:hover {
+                              color: #000;
+                              background-color: var(--rdp-accent-color);
+                              font-weight: bold;
+                              opacity: 1;
+                            }
+                            .rdp-day_selected:hover {
+                              background-color: #eeeeee;
+                            }
+                            .rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
+                              background-color: rgba(255, 255, 255, 0.05);
+                            }
+                            .rdp-day_range_middle {
+                              background-color: rgba(255, 255, 255, 0.05) !important;
+                              color: #fff !important;
+                            }
+                            .rdp-day {
+                              border-radius: 8px;
+                            }
+                            .rdp-head_cell {
+                              color: rgba(255,255,255,0.4);
+                              font-size: 0.8rem;
+                              font-weight: 500;
+                              text-transform: uppercase;
+                            }
+                            .rdp-caption_label {
+                              font-size: 1rem;
+                              font-weight: 600;
+                              color: rgba(255, 255, 255, 0.9);
+                            }
+                            .rdp-nav_button {
+                              color: rgba(255, 255, 255, 0.6);
+                            }
+                            .rdp-nav_button:hover {
+                              background: rgba(255,255,255,0.1);
+                            }
+                          `}} />
+                          <DayPicker
+                            mode="range"
+                            defaultMonth={dateRange?.from}
+                            selected={dateRange}
+                            onSelect={setDateRange}
+                            locale={ptBR}
+                            numberOfMonths={typeof window !== 'undefined' && window.innerWidth >= 768 ? 2 : 1}
+                            pagedNavigation
+                            className="bg-transparent text-white/80"
+                          />
+                          <div className="mt-4 pt-4 border-t border-white/5 flex justify-end">
+                            <button
+                              onClick={() => setIsCalendarOpen(false)}
+                              className="px-4 py-2 bg-white text-black text-xs font-semibold uppercase tracking-wider rounded-lg hover:bg-gray-200 transition-colors"
+                            >
+                              Aplicar Período
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
 
-                {/* 2nd row: Closer */}
+                {/* Closer */}
                 <div className="space-y-2">
                   <label className="text-[13px] font-medium text-white/50 tracking-wide uppercase">Closer Responsável</label>
                   <div className="relative group">
@@ -365,7 +467,7 @@ export default function FACloserHub() {
                       placeholder="Ex: João Silva"
                       value={formData.closer}
                       onChange={handleChange}
-                      className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-10 pr-4 text-white/90 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all placeholder:text-white/20"
+                      className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-10 pr-4 text-white/90 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all placeholder:text-white/20 hover:border-white/20"
                     />
                   </div>
                 </div>
@@ -373,192 +475,185 @@ export default function FACloserHub() {
               </div>
             </motion.div>
 
-            {/* Card Form 2: Oportunidades / Cadência */}
-            <AnimatePresence mode="wait">
-              {reportType === 'novas' ? (
-                <motion.div
-                  key="novas"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                  className="bg-[#0D0D0D] border border-white/[0.06] rounded-2xl p-6 md:p-8"
-                >
-                  <h2 className="text-[15px] font-semibold mb-6 text-white/90 flex items-center gap-2 tracking-wide">
-                    <PieChart className="text-white/40" size={18} />
-                    Métricas de Oportunidades Novas
-                  </h2>
+            {/* BLOCK 2: Oportunidades Novas */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+              className="bg-[#0D0D0D] border border-white/[0.06] rounded-2xl p-6 md:p-8"
+            >
+              <h2 className="text-[15px] font-semibold mb-6 text-white/90 flex items-center gap-2 tracking-wide">
+                <PieChart className="text-white/40" size={18} />
+                Métricas de Oportunidades Novas
+              </h2>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-7">
-                    <div className="space-y-2">
-                      <label className="text-[13px] font-medium text-white/50 tracking-wide uppercase">Orçamentos Novos</label>
-                      <div className="relative group">
-                        <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/60 transition-colors" size={16} />
-                        <input
-                          type="number"
-                          name="orcamentosNovos"
-                          placeholder="0"
-                          value={formData.orcamentosNovos}
-                          onChange={handleChange}
-                          className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-10 pr-4 text-white/90 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all placeholder:text-white/20"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[13px] font-medium text-white/50 tracking-wide uppercase">Valor dos Orçamentos</label>
-                      <div className="relative group">
-                        <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/60 transition-colors" size={16} />
-                        <input
-                          type="text"
-                          name="valorOrcamentosNovos"
-                          placeholder="R$ 0,00"
-                          value={formData.valorOrcamentosNovos}
-                          onChange={handleCurrencyChange}
-                          className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-10 pr-4 text-white/90 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all placeholder:text-white/20 font-mono"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[13px] font-medium text-white/50 tracking-wide uppercase">Orçamentos Fechados (Qtd)</label>
-                      <div className="relative group">
-                        <CheckCircle2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/60 transition-colors" size={16} />
-                        <input
-                          type="number"
-                          name="qtdFechadoNovas"
-                          placeholder="0"
-                          value={formData.qtdFechadoNovas}
-                          onChange={handleChange}
-                          className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-10 pr-4 text-white/90 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all placeholder:text-white/20"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[13px] font-medium text-white/50 tracking-wide uppercase">Valor do Contrato</label>
-                      <div className="relative group">
-                        <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/60 transition-colors" size={16} />
-                        <input
-                          type="text"
-                          name="valorContratoNovas"
-                          placeholder="R$ 0,00"
-                          value={formData.valorContratoNovas}
-                          onChange={handleCurrencyChange}
-                          className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-10 pr-4 text-white/90 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all placeholder:text-white/20 font-mono"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="text-[13px] font-medium text-white/60 tracking-wide uppercase">Valor Recebido (Cash coletado)</label>
-                      <div className="relative group">
-                        <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/50 group-focus-within:text-white/80 transition-colors" size={16} />
-                        <input
-                          type="text"
-                          name="valorRecebidoNovas"
-                          placeholder="R$ 0,00"
-                          value={formData.valorRecebidoNovas}
-                          onChange={handleCurrencyChange}
-                          className="w-full bg-[#030303] border border-white/20 rounded-xl py-3.5 pl-10 pr-4 text-white focus:outline-none focus:ring-1 focus:ring-white/40 focus:border-white/50 transition-all placeholder:text-white/20 font-mono"
-                        />
-                      </div>
-                    </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-7">
+                <div className="space-y-2">
+                  <label className="text-[13px] font-medium text-white/50 tracking-wide uppercase">Orçamentos Novos</label>
+                  <div className="relative group">
+                    <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/60 transition-colors" size={16} />
+                    <input
+                      type="number"
+                      name="orcamentosNovos"
+                      placeholder="0"
+                      value={formData.orcamentosNovos}
+                      onChange={handleChange}
+                      className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-10 pr-4 text-white/90 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all placeholder:text-white/20 hover:border-white/20"
+                    />
                   </div>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="cadencia"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                  className="bg-[#0D0D0D] border border-white/[0.06] rounded-2xl p-6 md:p-8"
-                >
-                  <h2 className="text-[15px] font-semibold mb-6 text-white/90 flex items-center gap-2 tracking-wide">
-                    <BarChart3 className="text-white/40" size={18} />
-                    Métricas de Cadência de Follow
-                  </h2>
+                </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-7">
-                    <div className="space-y-2">
-                      <label className="text-[13px] font-medium text-white/50 tracking-wide uppercase">Follows Realizados (Qtd)</label>
-                      <div className="relative group">
-                        <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/60 transition-colors" size={16} />
-                        <input
-                          type="number"
-                          name="qtdFollow"
-                          placeholder="0"
-                          value={formData.qtdFollow}
-                          onChange={handleChange}
-                          className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-10 pr-4 text-white/90 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all placeholder:text-white/20"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[13px] font-medium text-white/50 tracking-wide uppercase">Valor Ofertado em Follow</label>
-                      <div className="relative group">
-                        <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/60 transition-colors" size={16} />
-                        <input
-                          type="text"
-                          name="valorFollow"
-                          placeholder="R$ 0,00"
-                          value={formData.valorFollow}
-                          onChange={handleCurrencyChange}
-                          className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-10 pr-4 text-white/90 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all placeholder:text-white/20 font-mono"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[13px] font-medium text-white/50 tracking-wide uppercase">Orçamentos Fechados (Qtd)</label>
-                      <div className="relative group">
-                        <CheckCircle2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/60 transition-colors" size={16} />
-                        <input
-                          type="number"
-                          name="qtdFechadoCadencia"
-                          placeholder="0"
-                          value={formData.qtdFechadoCadencia}
-                          onChange={handleChange}
-                          className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-10 pr-4 text-white/90 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all placeholder:text-white/20"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[13px] font-medium text-white/50 tracking-wide uppercase">Valor do Contrato</label>
-                      <div className="relative group">
-                        <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/60 transition-colors" size={16} />
-                        <input
-                          type="text"
-                          name="valorContratoCadencia"
-                          placeholder="R$ 0,00"
-                          value={formData.valorContratoCadencia}
-                          onChange={handleCurrencyChange}
-                          className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-10 pr-4 text-white/90 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all placeholder:text-white/20 font-mono"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="text-[13px] font-medium text-white/60 tracking-wide uppercase">Valor Recebido (Cash coletado)</label>
-                      <div className="relative group">
-                        <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/50 group-focus-within:text-white/80 transition-colors" size={16} />
-                        <input
-                          type="text"
-                          name="valorRecebidoCadencia"
-                          placeholder="R$ 0,00"
-                          value={formData.valorRecebidoCadencia}
-                          onChange={handleCurrencyChange}
-                          className="w-full bg-[#030303] border border-white/20 rounded-xl py-3.5 pl-10 pr-4 text-white focus:outline-none focus:ring-1 focus:ring-white/40 focus:border-white/50 transition-all placeholder:text-white/20 font-mono"
-                        />
-                      </div>
-                    </div>
+                <div className="space-y-2">
+                  <label className="text-[13px] font-medium text-white/50 tracking-wide uppercase">Valor dos Orçamentos</label>
+                  <div className="relative group">
+                    <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/60 transition-colors" size={16} />
+                    <input
+                      type="text"
+                      name="valorOrcamentosNovos"
+                      placeholder="R$ 0,00"
+                      value={formData.valorOrcamentosNovos}
+                      onChange={handleCurrencyChange}
+                      className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-10 pr-4 text-white/90 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all placeholder:text-white/20 font-mono hover:border-white/20"
+                    />
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[13px] font-medium text-white/50 tracking-wide uppercase">Orçamentos Fechados (Qtd)</label>
+                  <div className="relative group">
+                    <CheckCircle2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/60 transition-colors" size={16} />
+                    <input
+                      type="number"
+                      name="qtdFechadoNovas"
+                      placeholder="0"
+                      value={formData.qtdFechadoNovas}
+                      onChange={handleChange}
+                      className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-10 pr-4 text-white/90 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all placeholder:text-white/20 hover:border-white/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[13px] font-medium text-white/50 tracking-wide uppercase">Valor do Contrato</label>
+                  <div className="relative group">
+                    <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/60 transition-colors" size={16} />
+                    <input
+                      type="text"
+                      name="valorContratoNovas"
+                      placeholder="R$ 0,00"
+                      value={formData.valorContratoNovas}
+                      onChange={handleCurrencyChange}
+                      className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-10 pr-4 text-white/90 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all placeholder:text-white/20 font-mono hover:border-white/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-[13px] font-medium text-white/60 tracking-wide uppercase">Valor Recebido (Cash coletado)</label>
+                  <div className="relative group">
+                    <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/50 group-focus-within:text-white/80 transition-colors" size={16} />
+                    <input
+                      type="text"
+                      name="valorRecebidoNovas"
+                      placeholder="R$ 0,00"
+                      value={formData.valorRecebidoNovas}
+                      onChange={handleCurrencyChange}
+                      className="w-full bg-[#030303] border border-white/20 rounded-xl py-3.5 pl-10 pr-4 text-white focus:outline-none focus:ring-1 focus:ring-white/40 focus:border-white/50 transition-all placeholder:text-white/20 font-mono hover:border-white/30"
+                    />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* BLOCK 3: Cadência de Follow */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+              className="bg-[#0D0D0D] border border-white/[0.06] rounded-2xl p-6 md:p-8"
+            >
+              <h2 className="text-[15px] font-semibold mb-6 text-white/90 flex items-center gap-2 tracking-wide">
+                <BarChart3 className="text-white/40" size={18} />
+                Métricas de Cadência de Follow
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-7">
+                <div className="space-y-2">
+                  <label className="text-[13px] font-medium text-white/50 tracking-wide uppercase">Follows Realizados (Qtd)</label>
+                  <div className="relative group">
+                    <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/60 transition-colors" size={16} />
+                    <input
+                      type="number"
+                      name="qtdFollow"
+                      placeholder="0"
+                      value={formData.qtdFollow}
+                      onChange={handleChange}
+                      className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-10 pr-4 text-white/90 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all placeholder:text-white/20 hover:border-white/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[13px] font-medium text-white/50 tracking-wide uppercase">Valor Ofertado em Follow</label>
+                  <div className="relative group">
+                    <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/60 transition-colors" size={16} />
+                    <input
+                      type="text"
+                      name="valorFollow"
+                      placeholder="R$ 0,00"
+                      value={formData.valorFollow}
+                      onChange={handleCurrencyChange}
+                      className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-10 pr-4 text-white/90 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all placeholder:text-white/20 font-mono hover:border-white/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[13px] font-medium text-white/50 tracking-wide uppercase">Orçamentos Fechados (Qtd)</label>
+                  <div className="relative group">
+                    <CheckCircle2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/60 transition-colors" size={16} />
+                    <input
+                      type="number"
+                      name="qtdFechadoCadencia"
+                      placeholder="0"
+                      value={formData.qtdFechadoCadencia}
+                      onChange={handleChange}
+                      className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-10 pr-4 text-white/90 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all placeholder:text-white/20 hover:border-white/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[13px] font-medium text-white/50 tracking-wide uppercase">Valor do Contrato</label>
+                  <div className="relative group">
+                    <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/60 transition-colors" size={16} />
+                    <input
+                      type="text"
+                      name="valorContratoCadencia"
+                      placeholder="R$ 0,00"
+                      value={formData.valorContratoCadencia}
+                      onChange={handleCurrencyChange}
+                      className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-10 pr-4 text-white/90 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all placeholder:text-white/20 font-mono hover:border-white/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-[13px] font-medium text-white/60 tracking-wide uppercase">Valor Recebido (Cash coletado)</label>
+                  <div className="relative group">
+                    <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/50 group-focus-within:text-white/80 transition-colors" size={16} />
+                    <input
+                      type="text"
+                      name="valorRecebidoCadencia"
+                      placeholder="R$ 0,00"
+                      value={formData.valorRecebidoCadencia}
+                      onChange={handleCurrencyChange}
+                      className="w-full bg-[#030303] border border-white/20 rounded-xl py-3.5 pl-10 pr-4 text-white focus:outline-none focus:ring-1 focus:ring-white/40 focus:border-white/50 transition-all placeholder:text-white/20 font-mono hover:border-white/30"
+                    />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
 
             {/* Error Message */}
             <AnimatePresence>
@@ -575,38 +670,38 @@ export default function FACloserHub() {
               )}
             </AnimatePresence>
 
-            {/* Primary Action Button (White / FA Premium) */}
+            {/* Main Action Button */}
             <motion.div className="pt-2">
               <motion.button
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={generatePDF}
                 disabled={isGenerating}
-                className="w-full py-4 bg-white hover:bg-gray-100 text-black rounded-xl font-semibold text-[15px] shadow-[0_4px_15px_rgba(255,255,255,0.08)] transition-all flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed uppercase tracking-wide"
+                className="w-full py-4.5 bg-white hover:bg-gray-100 text-black rounded-xl font-bold text-[15px] shadow-[0_4px_15px_rgba(255,255,255,0.08)] transition-all flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed uppercase tracking-wide"
               >
                 {isGenerating ? (
                   <div className="w-5 h-5 border-[2px] border-black/20 border-t-black rounded-full animate-spin" />
                 ) : (
                   <>
                     <FileText size={18} className="text-black" />
-                    Gerar Relatório Corporativo
+                    Gerar Relatório Consolidado
                   </>
                 )}
               </motion.button>
             </motion.div>
 
-            {/* Success Download CTA */}
+            {/* Success States */}
             <AnimatePresence>
               {pdfGenerated && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="pt-4 text-center overflow-hidden"
+                  className="pt-2 text-center overflow-hidden pb-4"
                 >
                   <p className="text-white/70 text-sm font-medium flex items-center justify-center gap-2 mb-3">
                     <CheckCircle2 size={16} className="text-white" />
-                    Exportação Finalizada
+                    Exportação Finalizada com Sucesso!
                   </p>
                   <button
                     onClick={generatePDF}
@@ -622,31 +717,21 @@ export default function FACloserHub() {
         </main>
       </div>
 
-      {/* Global & Layout Styles for Background and Scrollbar */}
       <style dangerouslySetInnerHTML={{
         __html: `
-        /* Premium Background Animation */
         .bg-grid-pattern {
           background-image: 
             linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
             linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
           background-size: 50px 50px;
         }
-
         .animate-grid-scroll {
           animation: gridScroll 30s linear infinite;
         }
-
         @keyframes gridScroll {
-          0% {
-            transform: translateY(0);
-          }
-          100% {
-            transform: translateY(50px);
-          }
+          0% { transform: translateY(0); }
+          100% { transform: translateY(50px); }
         }
-
-        /* Deep Custom Scrollbar */
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
         }
@@ -659,15 +744,6 @@ export default function FACloserHub() {
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background-color: rgba(255, 255, 255, 0.15);
-        }
-
-        /* Color Scheme override for datepicker */
-        input[type="date"]::-webkit-calendar-picker-indicator {
-          filter: invert(1) brightness(0.6);
-          cursor: pointer;
-        }
-        input[type="date"]::-webkit-calendar-picker-indicator:hover {
-          filter: invert(1) brightness(1);
         }
       `}} />
     </div>
