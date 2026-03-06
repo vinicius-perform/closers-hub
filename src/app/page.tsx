@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 
 import { DayPicker, DateRange } from 'react-day-picker';
+import 'react-day-picker/style.css';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -196,6 +197,57 @@ export default function FACloserHub() {
       doc.setFont('helvetica', 'normal');
       doc.text(formData.closer, 55, 84);
 
+      // --- VISUAL SALES FUNNEL (IMPACTFUL BLOCK) ---
+      const funnelYStart = 98;
+      doc.setFillColor(252, 252, 252);
+      doc.roundedRect(14, funnelYStart, 182, 65, 3, 3, 'F');
+      doc.setDrawColor(220, 220, 220);
+      doc.roundedRect(14, funnelYStart, 182, 65, 3, 3, 'D');
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 30, 30);
+      doc.text('FUNIL DE VENDAS CONSOLIDADO', 20, funnelYStart + 8);
+
+      // Funnel Shapes
+      const fXCenter = 85;
+      const fYStart = funnelYStart + 15;
+
+      doc.setFillColor(15, 15, 15);
+      doc.polygon([[fXCenter - 35, fYStart], [fXCenter + 35, fYStart], [fXCenter + 28, fYStart + 15], [fXCenter - 28, fYStart + 15]], 'F');
+
+      doc.setFillColor(60, 60, 60);
+      doc.polygon([[fXCenter - 28, fYStart + 17], [fXCenter + 28, fYStart + 17], [fXCenter + 18, fYStart + 32], [fXCenter - 18, fYStart + 32]], 'F');
+
+      doc.setFillColor(110, 110, 110);
+      doc.polygon([[fXCenter - 18, fYStart + 34], [fXCenter + 18, fYStart + 34], [fXCenter, fYStart + 50]], 'F');
+
+      // Funnel Metrics Labels
+      const tOpp = (parseInt(formData.orcamentosNovos) || 0) + (parseInt(formData.qtdFollow) || 0);
+      const tClosed = (parseInt(formData.qtdFechadoNovas) || 0) + (parseInt(formData.qtdFechadoCadencia) || 0);
+      const cR = tOpp > 0 ? ((tClosed / tOpp) * 100).toFixed(1) : '0';
+
+      doc.setFontSize(8);
+      doc.setTextColor(110, 110, 110);
+      doc.text('OPORTUNIDADES', 130, fYStart + 8);
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.text(`${tOpp} Leads Totais`, 130, fYStart + 13);
+
+      doc.setFontSize(8);
+      doc.setTextColor(110, 110, 110);
+      doc.text('FECHAMENTOS', 130, fYStart + 25);
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.text(`${tClosed} Contratos`, 130, fYStart + 30);
+
+      doc.setFontSize(8);
+      doc.setTextColor(110, 110, 110);
+      doc.text('TAXA DE CONVERSÃO', 130, fYStart + 42);
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 0);
+      doc.text(`${cR}%`, 130, fYStart + 49);
+
       // Helper function for table headers
       const drawTableHeader = (title: string, yPos: number) => {
         doc.setFontSize(12);
@@ -231,7 +283,7 @@ export default function FACloserHub() {
       };
 
       // Table 1: Oportunidades Novas
-      currentY = drawTableHeader('MÉTRICAS DE OPORTUNIDADES NOVAS', 103);
+      currentY = drawTableHeader('MÉTRICAS DE OPORTUNIDADES NOVAS', 178);
       drawRow('Orçamentos Novos', formData.orcamentosNovos, false);
       drawRow('Valor dos Orçamentos Novos', formData.valorOrcamentosNovos, true);
       drawRow('Quantidade de Orçamentos Fechados', formData.qtdFechadoNovas, false);
@@ -385,51 +437,73 @@ export default function FACloserHub() {
                         >
                           <style dangerouslySetInnerHTML={{
                             __html: `
-                            .rdp {
-                              --rdp-cell-size: 40px;
+                            .rdp-root {
                               --rdp-accent-color: #ffffff;
-                              --rdp-background-color: rgba(255, 255, 255, 0.1);
-                              --rdp-accent-color-dark: #ffffff;
-                              --rdp-background-color-dark: rgba(255, 255, 255, 0.15);
-                              --rdp-outline: 2px solid var(--rdp-accent-color); 
-                              --rdp-outline-selected: 2px solid var(--rdp-accent-color);
-                              margin: 0;
+                              --rdp-background-color: rgba(255, 255, 255, 0.08);
+                              --rdp-day-height: 40px;
+                              --rdp-day-width: 40px;
+                              --rdp-day_button-border-radius: 8px;
+                              --rdp-selected-color: #000;
+                              --rdp-selected-font: bold;
+                              --rdp-margin: 0;
                             }
-                            .rdp-day_selected, .rdp-day_selected:focus-visible, .rdp-day_selected:hover {
-                              color: #000;
-                              background-color: var(--rdp-accent-color);
-                              font-weight: bold;
-                              opacity: 1;
-                            }
-                            .rdp-day_selected:hover {
-                              background-color: #eeeeee;
-                            }
-                            .rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
-                              background-color: rgba(255, 255, 255, 0.05);
-                            }
-                            .rdp-day_range_middle {
-                              background-color: rgba(255, 255, 255, 0.05) !important;
-                              color: #fff !important;
-                            }
-                            .rdp-day {
-                              border-radius: 8px;
-                            }
-                            .rdp-head_cell {
-                              color: rgba(255,255,255,0.4);
-                              font-size: 0.8rem;
-                              font-weight: 500;
-                              text-transform: uppercase;
+                            .rdp-root {
+                              color: rgba(255,255,255,0.85);
                             }
                             .rdp-caption_label {
-                              font-size: 1rem;
+                              text-transform: capitalize;
                               font-weight: 600;
-                              color: rgba(255, 255, 255, 0.9);
+                              font-size: 1rem;
+                              color: #ffffff;
+                            }
+                            .rdp-weekday {
+                              text-transform: uppercase;
+                              font-size: 0.7rem;
+                              color: rgba(255, 255, 255, 0.3);
+                              letter-spacing: 0.05em;
+                              font-weight: 600;
                             }
                             .rdp-nav_button {
-                              color: rgba(255, 255, 255, 0.6);
+                              color: rgba(255, 255, 255, 0.5);
                             }
                             .rdp-nav_button:hover {
-                              background: rgba(255,255,255,0.1);
+                              background-color: rgba(255, 255, 255, 0.05);
+                              color: #ffffff;
+                            }
+                            .rdp-day_button:hover:not([disabled]):not(.rdp-selected) {
+                              background-color: rgba(255, 255, 255, 0.05);
+                              color: #ffffff;
+                            }
+                            .rdp-selected {
+                              background-color: transparent !important;
+                            }
+                            /* Range Start/End: White circle/square with black text */
+                            .rdp-day_button.rdp-range_start, 
+                            .rdp-day_button.rdp-range_end,
+                            .rdp-range_start .rdp-day_button,
+                            .rdp-range_end .rdp-day_button {
+                              background-color: #ffffff !important;
+                              color: #000000 !important;
+                              font-weight: 400 !important;
+                              border-radius: 8px !important;
+                              opacity: 1 !important;
+                            }
+                            
+                            /* Hover state for days */
+                            .rdp-day_button:hover:not([disabled]):not(.rdp-selected) {
+                              background-color: rgba(255, 255, 255, 0.05) !important;
+                            }
+
+                            /* Range Middle: Subtle transparent gray background */
+                            .rdp-day_button.rdp-range_middle,
+                            .rdp-range_middle .rdp-day_button {
+                              background-color: rgba(255, 255, 255, 0.05) !important;
+                              color: #ffffff !important;
+                              border-radius: 0 !important;
+                            }
+
+                            .rdp-outside {
+                              color: rgba(255, 255, 255, 0.15) !important;
                             }
                           `}} />
                           <DayPicker
@@ -438,9 +512,8 @@ export default function FACloserHub() {
                             selected={dateRange}
                             onSelect={setDateRange}
                             locale={ptBR}
-                            numberOfMonths={typeof window !== 'undefined' && window.innerWidth >= 768 ? 2 : 1}
-                            pagedNavigation
-                            className="bg-transparent text-white/80"
+                            numberOfMonths={1}
+                            className="bg-transparent"
                           />
                           <div className="mt-4 pt-4 border-t border-white/5 flex justify-end">
                             <button
