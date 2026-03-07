@@ -24,6 +24,20 @@ import 'react-day-picker/style.css';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+const OPERACAO_CLOSER_MAP: Record<string, string> = {
+  'Dr. Leonardo Silvestrini': 'Sara Lívia',
+  'Dra. Luciana': 'Sara Lívia',
+  'Dr Cris': 'Sara Lívia',
+  'Dr. Eduardo Brusiquesi': 'Sara Lívia',
+  'Dra. Paola Teles': 'Sara Lívia',
+  'Bodyplastia': 'José',
+  'Dr. Marcelo': 'José',
+  'Dra. Marcela': 'José',
+  'Dr. Fernando': 'Vitória',
+  'Dr. Rodrigo Coelho': 'Josy',
+  'Dr. Jair Dacás': 'Bárbara'
+};
+
 export default function FACloserHub() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [pdfGenerated, setPdfGenerated] = useState(false);
@@ -69,7 +83,15 @@ export default function FACloserHub() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: value };
+      if (name === 'operacao' && OPERACAO_CLOSER_MAP[value]) {
+        updated.closer = OPERACAO_CLOSER_MAP[value];
+      }
+      return updated;
+    });
+
     setError(null);
     setPdfGenerated(false);
   };
@@ -439,9 +461,9 @@ export default function FACloserHub() {
                         className="w-full bg-[#030303] border border-white/10 rounded-xl py-3.5 pl-10 pr-4 text-white/90 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all appearance-none cursor-pointer hover:border-white/20"
                       >
                         <option value="" disabled className="text-gray-500">Selecione uma operação</option>
-                        <option value="Bodyplastia">Bodyplastia</option>
-                        <option value="Dr. Marcelo">Dr. Marcelo</option>
-                        <option value="Dra. Marcela">Dra. Marcela</option>
+                        {Object.keys(OPERACAO_CLOSER_MAP).sort().map((op) => (
+                          <option key={op} value={op}>{op}</option>
+                        ))}
                       </select>
                       <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" size={16} />
                     </div>
