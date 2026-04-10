@@ -35,7 +35,8 @@ const OPERACAO_CLOSER_MAP: Record<string, string> = {
   'Dra. Marcela': 'José',
   'Dr. Fernando': 'Vitória',
   'Dr. Rodrigo Coelho': 'Josy',
-  'Dr. Jair Dacás': 'Bárbara'
+  'Dr. Jair Dacás': 'Bárbara',
+  'Edwirges Rodrigues': 'Josy'
 };
 
 export default function FACloserHub() {
