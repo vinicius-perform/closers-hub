@@ -25,18 +25,22 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const OPERACAO_CLOSER_MAP: Record<string, string> = {
-  'Dr. Leonardo Silvestrini': 'Sara Lívia',
-  'Dra. Luciana': 'Sara Lívia',
-  'Dr Cris': 'Sara Lívia',
-  'Dr. Eduardo Brusiquesi': 'Sara Lívia',
-  'Dra. Paola Teles': 'Sara Lívia',
-  'Bodyplastia': 'José',
-  'Dr. Marcelo': 'José',
-  'Dra. Marcela': 'José',
-  'Dr. Fernando': 'Vitória',
-  'Dr. Rodrigo Coelho': 'Josy',
-  'Dr. Jair Dacás': 'Bárbara',
-  'Edwirges Rodrigues': 'Josy'
+  'Bodyincision': 'José',
+  'Rodrigo Vieira comercial': 'Rafaela',
+  'Dr pedro Lima': 'Layza',
+  'Dr Rodrigo Coelho': 'Josy',
+  'Doutor Cris': 'Stephane',
+  'Dr Fernando silveira': 'Vitória Couto',
+  'Dra Marcela Fiel': 'José',
+  'Dr Jair Dacas': 'José',
+  'Dr Leonardo Silvestrine': 'José',
+  'Dra Paola': 'Rapha interno',
+  'Dr André': 'José',
+  'Dr Derlis': 'José',
+  'Dra Mariella': 'Bianca',
+  'DR KLEISON': 'José',
+  'DR THIGO SALLA': 'José',
+  'Dra Alessandra Montera': 'José'
 };
 
 export default function FACloserHub() {
