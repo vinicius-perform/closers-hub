@@ -15,7 +15,10 @@ import {
   CheckCircle2,
   PieChart,
   ChevronDown,
-  UserCheck
+  UserCheck,
+  TrendingUp,
+  Sparkles,
+  LayoutDashboard
 } from 'lucide-react';
 
 import { DayPicker, DateRange } from 'react-day-picker';
@@ -217,7 +220,7 @@ export default function FACloserHub() {
       let currentY = MARGIN;
 
       const drawDivider = (y: number) => {
-        doc.setDrawColor(230, 230, 230);
+        doc.setDrawColor(225, 230, 240);
         doc.setLineWidth(0.3);
         doc.line(MARGIN, y, MARGIN + CONTENT_WIDTH, y);
       };
@@ -234,26 +237,26 @@ export default function FACloserHub() {
             img.onerror = () => resolve(null);
           }
         });
-        doc.setFillColor(12, 12, 12);
+        doc.setFillColor(11, 13, 19);
         doc.roundedRect(MARGIN, currentY, 48, 12, 2, 2, 'F');
         doc.addImage(img, 'PNG', MARGIN + 2, currentY + 2, 44, 8);
         headerOffset = 54;
       } catch {
-        doc.setFillColor(15, 15, 15);
+        doc.setFillColor(198, 245, 0);
         doc.roundedRect(MARGIN, currentY, 12, 12, 2.5, 2.5, 'F');
-        doc.setTextColor(255, 255, 255);
+        doc.setTextColor(0, 0, 0);
         doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
         doc.text('FA', MARGIN + 3.2, currentY + 8);
       }
 
-      doc.setTextColor(18, 18, 18);
+      doc.setTextColor(11, 13, 19);
       doc.setFontSize(13);
       doc.setFont('helvetica', 'bold');
       doc.text(`RELATÓRIO INDIVIDUAL DE CLOSER`, MARGIN + headerOffset, currentY + 8.5);
 
       doc.setFontSize(8);
-      doc.setTextColor(140, 140, 140);
+      doc.setTextColor(110, 122, 145);
       doc.setFont('helvetica', 'normal');
       doc.text('INTELIGÊNCIA COMERCIAL', MARGIN + CONTENT_WIDTH - 38, currentY + 8.5);
 
@@ -264,7 +267,7 @@ export default function FACloserHub() {
       // 2. INFORMAÇÕES DO CLOSER
       doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(110, 110, 110);
+      doc.setTextColor(90, 105, 130);
       doc.text('INFORMAÇÕES GERAIS', MARGIN, currentY);
       currentY += 8;
 
@@ -272,11 +275,11 @@ export default function FACloserHub() {
       const drawInfoItem = (label: string, value: string, x: number, y: number) => {
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(130, 130, 130);
+        doc.setTextColor(120, 135, 155);
         doc.text(label, x, y);
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(20, 20, 20);
+        doc.setTextColor(15, 20, 30);
         doc.text(value, x, y + 5.5);
       };
 
@@ -298,18 +301,23 @@ export default function FACloserHub() {
 
       kpis.forEach((kpi, idx) => {
         const x = MARGIN + idx * (kpiW + 3);
-        doc.setFillColor(kpi.highlight ? 20 : 252, kpi.highlight ? 20 : 252, kpi.highlight ? 20 : 252);
-        doc.setDrawColor(kpi.highlight ? 20 : 230, kpi.highlight ? 20 : 230, kpi.highlight ? 20 : 230);
+        if (kpi.highlight) {
+          doc.setFillColor(11, 13, 19);
+          doc.setDrawColor(11, 13, 19);
+        } else {
+          doc.setFillColor(248, 250, 253);
+          doc.setDrawColor(220, 226, 238);
+        }
         doc.roundedRect(x, kpiCardY, kpiW, kpiCardH, 2.5, 2.5, 'FD');
 
         doc.setFontSize(6.5);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(kpi.highlight ? 200 : 120, kpi.highlight ? 200 : 120, kpi.highlight ? 200 : 120);
+        doc.setTextColor(kpi.highlight ? 198 : 100, kpi.highlight ? 245 : 115, kpi.highlight ? 0 : 135);
         doc.text(kpi.label, x + 3.5, kpiCardY + 7);
 
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(kpi.highlight ? 255 : 30, kpi.highlight ? 255 : 30, kpi.highlight ? 255 : 30);
+        doc.setTextColor(kpi.highlight ? 255 : 20, kpi.highlight ? 255 : 25, kpi.highlight ? 255 : 35);
         doc.text(kpi.val, x + 3.5, kpiCardY + 18);
       });
 
@@ -319,13 +327,13 @@ export default function FACloserHub() {
       const drawSectionHeader = (title: string, y: number) => {
         doc.setFontSize(9.5);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(20, 20, 20);
+        doc.setTextColor(15, 20, 30);
         doc.text(title, MARGIN, y);
 
         const tableY = y + 4;
-        doc.setFillColor(18, 18, 18);
+        doc.setFillColor(11, 13, 19);
         doc.rect(MARGIN, tableY, CONTENT_WIDTH, 8, 'F');
-        doc.setTextColor(255, 255, 255);
+        doc.setTextColor(198, 245, 0);
         doc.setFontSize(7.5);
         doc.setFont('helvetica', 'bold');
         doc.text('MÉTRICA / INDICADOR', MARGIN + 4, tableY + 5.5);
@@ -335,24 +343,24 @@ export default function FACloserHub() {
 
       const drawTableRow = (label: string, value: string, y: number, isAlt: boolean, isTotal = false) => {
         if (isTotal) {
-          doc.setFillColor(240, 240, 240);
+          doc.setFillColor(235, 240, 250);
           doc.rect(MARGIN, y, CONTENT_WIDTH, 8.5, 'F');
-          doc.setTextColor(15, 15, 15);
+          doc.setTextColor(10, 15, 25);
           doc.setFontSize(8.5);
           doc.setFont('helvetica', 'bold');
         } else {
           if (isAlt) {
-            doc.setFillColor(250, 250, 250);
+            doc.setFillColor(248, 250, 254);
             doc.rect(MARGIN, y, CONTENT_WIDTH, 8, 'F');
           }
-          doc.setTextColor(55, 55, 55);
+          doc.setTextColor(45, 55, 75);
           doc.setFontSize(8);
           doc.setFont('helvetica', 'normal');
         }
 
         doc.text(label, MARGIN + 4, y + (isTotal ? 6 : 5.5));
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(isTotal ? 0 : 30, isTotal ? 0 : 30, isTotal ? 0 : 30);
+        doc.setTextColor(isTotal ? 0 : 25, isTotal ? 0 : 30, isTotal ? 0 : 40);
         doc.text(value, MARGIN + CONTENT_WIDTH - 45, y + (isTotal ? 6 : 5.5));
         return y + (isTotal ? 8.5 : 8);
       };
@@ -384,7 +392,7 @@ export default function FACloserHub() {
 
       // FOOTER
       doc.setFontSize(7);
-      doc.setTextColor(170, 170, 170);
+      doc.setTextColor(150, 160, 175);
       doc.setFont('helvetica', 'normal');
       const footerText = `FA Closer Hub | Closer: ${selectedCloser} | Emitido em ${format(new Date(), 'dd/MM/yyyy HH:mm')} | Confidencial`;
       doc.text(footerText, MARGIN, 285);
@@ -403,37 +411,42 @@ export default function FACloserHub() {
   };
 
   return (
-    <div className="min-h-screen bg-[#030303] text-gray-100 font-sans flex items-center justify-center p-3 sm:p-6 relative overflow-hidden">
-      {/* Subtle Premium Animated Background */}
+    <div className="min-h-screen bg-[#090B10] text-gray-100 font-sans flex items-center justify-center p-3 sm:p-6 relative overflow-hidden">
+      {/* Subtle Premium Animated Background with Fazendo Acontecer Lime Tint */}
       <div className="absolute inset-0 z-0 opacity-20 pointer-events-none fade-in-grid">
         <div className="absolute inset-0 bg-grid-pattern [mask-image:radial-gradient(ellipse_at_center,white,transparent_85%)] animate-grid-scroll"></div>
       </div>
 
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-white/[0.02] blur-[120px] rounded-full pointer-events-none z-0"></div>
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#C6F500]/[0.025] blur-[150px] rounded-full pointer-events-none z-0"></div>
 
       {/* Main Container */}
-      <div className="w-full max-w-6xl flex flex-col md:flex-row relative z-10 bg-[#0A0A0A] border border-white/[0.08] shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-[24px] overflow-hidden min-h-[750px] h-[92vh] max-h-[1200px]">
+      <div className="w-full max-w-6xl flex flex-col md:flex-row relative z-10 bg-[#0E1017] border border-[#222736] shadow-[0_25px_70px_rgba(0,0,0,0.85)] rounded-[24px] overflow-hidden min-h-[750px] h-[92vh] max-h-[1200px]">
         {/* Sidebar Institucional & Closer Switcher */}
-        <aside className="w-full md:w-[290px] bg-[#070707] border-r border-white/[0.06] p-6 lg:p-7 flex flex-col shrink-0 flex-none justify-between">
-          <div className="space-y-8">
+        <aside className="w-full md:w-[290px] bg-[#0A0C12] border-r border-[#1B1F2C] p-6 lg:p-7 flex flex-col shrink-0 flex-none justify-between">
+          <div className="space-y-7">
             {/* Logo */}
             <div className="space-y-1.5">
               <img
                 src="/logo.png"
-                alt="Logo"
-                className="h-8 w-auto max-w-[210px] object-contain drop-shadow-[0_0_15px_rgba(200,255,0,0.12)]"
+                alt="Fazendo Acontecer"
+                className="h-8 w-auto max-w-[210px] object-contain drop-shadow-[0_0_20px_rgba(198,245,0,0.25)]"
               />
-              <p className="text-[10px] text-white/40 font-mono tracking-widest uppercase pl-0.5">
-                Hub Closers • Gestão Comercial
+              <p className="text-[10px] text-[#7E8B9F] font-mono tracking-widest uppercase pl-0.5 font-medium">
+                Hub Closers • Gestão
               </p>
             </div>
 
-            {/* SELEÇÃO DO CLOSER */}
+            {/* SEÇÃO MENU PRINCIPAL / SELEÇÃO DO CLOSER */}
             <div className="space-y-3">
-              <p className="text-[11px] font-bold text-white/40 uppercase tracking-widest px-1">
-                Selecionar Closer
+              <p className="text-[11px] font-bold text-[#64748B] uppercase tracking-widest px-1 flex items-center justify-between">
+                <span>Menu Principal</span>
+                <span className="text-[9px] font-mono bg-[#161924] text-[#94A3B8] px-1.5 py-0.5 rounded border border-[#232838]">
+                  CLOSERS
+                </span>
               </p>
-              <div className="grid grid-cols-2 gap-2 p-1 bg-[#121212] border border-white/[0.06] rounded-xl">
+
+              {/* Selector Pills with Fazendo Acontecer Lime Active Theme */}
+              <div className="grid grid-cols-2 gap-2 p-1.5 bg-[#121520] border border-[#202535] rounded-xl">
                 {(['José', 'Thais'] as CloserName[]).map((closer) => {
                   const isSelected = selectedCloser === closer;
                   return (
@@ -444,13 +457,13 @@ export default function FACloserHub() {
                         setError(null);
                         setPdfGenerated(false);
                       }}
-                      className={`relative py-2.5 px-3 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+                      className={`relative py-2.5 px-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${
                         isSelected
-                          ? 'bg-white text-black shadow-[0_2px_10px_rgba(255,255,255,0.2)]'
-                          : 'text-white/60 hover:text-white hover:bg-white/[0.04]'
+                          ? 'bg-[#C6F500] text-black shadow-[0_0_20px_rgba(198,245,0,0.35)] scale-[1.02]'
+                          : 'text-[#94A3B8] hover:text-white hover:bg-[#181C2B]'
                       }`}
                     >
-                      <User size={14} className={isSelected ? 'text-black' : 'text-white/40'} />
+                      <User size={14} className={isSelected ? 'text-black' : 'text-[#64748B]'} />
                       {closer}
                     </button>
                   );
@@ -458,26 +471,44 @@ export default function FACloserHub() {
               </div>
             </div>
 
+            {/* Menu Active Pill Item ('Visão Geral' styled like the screenshot) */}
+            <div className="space-y-2">
+              <div className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl bg-[#C6F500] text-black font-bold text-sm shadow-[0_0_25px_rgba(198,245,0,0.22)]">
+                <div className="flex items-center gap-2.5">
+                  <LayoutDashboard size={17} className="text-black" />
+                  <span>Dashboard</span>
+                </div>
+                <ChevronDown size={16} className="text-black" />
+              </div>
+
+              <div className="pl-4 pt-1">
+                <div className="w-full px-3.5 py-2.5 rounded-lg bg-[#161924] border border-[#232838] text-white text-xs font-semibold flex items-center justify-between">
+                  <span>Visão Geral • {selectedCloser}</span>
+                  <span className="w-2 h-2 rounded-full bg-[#C6F500] shadow-[0_0_8px_#C6F500]"></span>
+                </div>
+              </div>
+            </div>
+
             {/* Resumo Rápido na Sidebar */}
-            <div className="p-4 rounded-xl bg-[#111111] border border-white/[0.05] space-y-3">
+            <div className="p-4 rounded-xl bg-[#121520] border border-[#202535] space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] text-white/40 uppercase tracking-wider font-medium">
-                  Status de {selectedCloser}
+                <span className="text-[11px] text-[#7E8B9F] uppercase tracking-wider font-semibold">
+                  Métricas de {selectedCloser}
                 </span>
-                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#C6F500] bg-[#C6F500]/10 px-2 py-0.5 rounded-full border border-[#C6F500]/25">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#C6F500] animate-pulse"></span>
                   Ativo
                 </span>
               </div>
 
-              <div className="pt-2 border-t border-white/[0.04] space-y-2">
+              <div className="pt-2 border-t border-[#1C2130] space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-white/50">Total Vendas:</span>
-                  <span className="font-semibold text-white font-mono">{summary.totalVendas} un</span>
+                  <span className="text-[#8F9CAE]">Total Vendas:</span>
+                  <span className="font-bold text-white font-mono">{summary.totalVendas} un</span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-white/50">Faturamento:</span>
-                  <span className="font-semibold text-white font-mono">
+                  <span className="text-[#8F9CAE]">Faturamento:</span>
+                  <span className="font-bold text-[#C6F500] font-mono">
                     {formatCurrency(summary.totalFaturado)}
                   </span>
                 </div>
@@ -486,32 +517,32 @@ export default function FACloserHub() {
           </div>
 
           {/* User Session Info */}
-          <div className="pt-6 border-t border-white/[0.06] flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/70">
+          <div className="pt-5 border-t border-[#1B1F2C] flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#141824] border border-[#222738] flex items-center justify-center text-[#C6F500]">
               <UserCheck size={16} />
             </div>
             <div>
-              <p className="text-xs font-semibold text-white/90">Painel do Closer</p>
-              <p className="text-[10px] text-white/40 tracking-wider uppercase">Ambiente Seguro</p>
+              <p className="text-xs font-bold text-white">Painel do Closer</p>
+              <p className="text-[10px] text-[#64748B] tracking-wider uppercase font-mono">Ambiente Seguro</p>
             </div>
           </div>
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto px-5 py-7 md:p-10 custom-scrollbar relative bg-[#060606]">
+        <main className="flex-1 overflow-y-auto px-5 py-7 md:p-10 custom-scrollbar relative bg-[#0B0D13]">
           <div className="w-full max-w-3xl mx-auto space-y-7 pb-8">
             {/* Header & Date Selector */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.06] pb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1C2130] pb-6">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="px-2.5 py-0.5 rounded-md bg-white/[0.08] text-white/80 text-[11px] font-mono font-medium tracking-wide">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="px-2.5 py-0.5 rounded-md bg-[#C6F500]/10 border border-[#C6F500]/25 text-[#C6F500] text-[11px] font-mono font-bold tracking-wide">
                     Closer: {selectedCloser}
                   </span>
                 </div>
-                <h1 className="text-2xl font-bold tracking-tight text-white">
+                <h1 className="text-2xl font-extrabold tracking-tight text-white">
                   Preenchimento de Métricas
                 </h1>
-                <p className="text-white/40 text-xs mt-0.5">
+                <p className="text-[#7E8B9F] text-xs mt-0.5">
                   Informe os orçamentos novos e o trabalho na base do dia.
                 </p>
               </div>
@@ -520,18 +551,18 @@ export default function FACloserHub() {
               <div className="relative" ref={calendarRef}>
                 <button
                   onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-                  className={`flex items-center gap-2.5 bg-[#111111] border rounded-xl py-2.5 px-4 text-xs font-medium transition-all focus:outline-none hover:border-white/20 ${
+                  className={`flex items-center gap-2.5 bg-[#121520] border rounded-xl py-2.5 px-4 text-xs font-semibold transition-all focus:outline-none hover:border-[#C6F500]/40 ${
                     isCalendarOpen
-                      ? 'border-white/30 ring-1 ring-white/20 text-white'
-                      : 'border-white/10 text-white/80'
+                      ? 'border-[#C6F500] ring-1 ring-[#C6F500]/30 text-white'
+                      : 'border-[#222738] text-white/90'
                   }`}
                 >
-                  <CalendarIcon size={14} className="text-white/50" />
+                  <CalendarIcon size={14} className="text-[#C6F500]" />
                   <span>{formatPeriod()}</span>
                   <ChevronDown
                     size={14}
-                    className={`text-white/40 transition-transform ${
-                      isCalendarOpen ? 'rotate-180' : ''
+                    className={`text-[#7E8B9F] transition-transform ${
+                      isCalendarOpen ? 'rotate-180 text-[#C6F500]' : ''
                     }`}
                   />
                 </button>
@@ -543,44 +574,44 @@ export default function FACloserHub() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 5, scale: 0.98 }}
                       transition={{ duration: 0.18 }}
-                      className="absolute z-50 top-12 right-0 p-4 bg-[#0F0F0F] border border-white/[0.1] rounded-2xl shadow-2xl shadow-black"
+                      className="absolute z-50 top-12 right-0 p-4 bg-[#0E1119] border border-[#242A3D] rounded-2xl shadow-2xl shadow-black"
                     >
                       <style
                         dangerouslySetInnerHTML={{
                           __html: `
                           .rdp-root {
-                            --rdp-accent-color: #ffffff;
-                            --rdp-background-color: rgba(255, 255, 255, 0.08);
+                            --rdp-accent-color: #C6F500;
+                            --rdp-background-color: rgba(198, 245, 0, 0.12);
                             --rdp-day-height: 38px;
                             --rdp-day-width: 38px;
                             --rdp-day_button-border-radius: 8px;
-                            --rdp-selected-color: #000;
+                            --rdp-selected-color: #000000;
                             --rdp-selected-font: bold;
                             --rdp-margin: 0;
-                            color: rgba(255,255,255,0.85);
+                            color: #E2E8F0;
                           }
                           .rdp-caption_label {
                             text-transform: capitalize;
-                            font-weight: 600;
+                            font-weight: bold;
                             font-size: 0.95rem;
-                            color: #ffffff;
+                            color: #FFFFFF;
                           }
                           .rdp-weekday {
                             text-transform: uppercase;
                             font-size: 0.68rem;
-                            color: rgba(255, 255, 255, 0.35);
-                            font-weight: 600;
+                            color: #64748B;
+                            font-weight: 700;
                           }
                           .rdp-nav_button {
-                            color: rgba(255, 255, 255, 0.5);
+                            color: #94A3B8;
                           }
                           .rdp-nav_button:hover {
-                            background-color: rgba(255, 255, 255, 0.08);
-                            color: #ffffff;
+                            background-color: rgba(198, 245, 0, 0.15);
+                            color: #C6F500;
                           }
                           .rdp-day_button:hover:not([disabled]):not(.rdp-selected) {
-                            background-color: rgba(255, 255, 255, 0.08);
-                            color: #ffffff;
+                            background-color: rgba(198, 245, 0, 0.15);
+                            color: #C6F500;
                           }
                           .rdp-selected {
                             background-color: transparent !important;
@@ -589,19 +620,19 @@ export default function FACloserHub() {
                           .rdp-day_button.rdp-range_end,
                           .rdp-range_start .rdp-day_button,
                           .rdp-range_end .rdp-day_button {
-                            background-color: #ffffff !important;
+                            background-color: #C6F500 !important;
                             color: #000000 !important;
                             font-weight: bold !important;
                             border-radius: 8px !important;
                           }
                           .rdp-day_button.rdp-range_middle,
                           .rdp-range_middle .rdp-day_button {
-                            background-color: rgba(255, 255, 255, 0.08) !important;
-                            color: #ffffff !important;
+                            background-color: rgba(198, 245, 0, 0.15) !important;
+                            color: #C6F500 !important;
                             border-radius: 0 !important;
                           }
                           .rdp-outside {
-                            color: rgba(255, 255, 255, 0.15) !important;
+                            color: #334155 !important;
                           }
                         `
                         }}
@@ -615,10 +646,10 @@ export default function FACloserHub() {
                         numberOfMonths={1}
                         className="bg-transparent"
                       />
-                      <div className="mt-3 pt-3 border-t border-white/[0.08] flex justify-end">
+                      <div className="mt-3 pt-3 border-t border-[#1E2435] flex justify-end">
                         <button
                           onClick={() => setIsCalendarOpen(false)}
-                          className="px-3.5 py-1.5 bg-white text-black text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-gray-200 transition-colors"
+                          className="px-3.5 py-1.5 bg-[#C6F500] text-black text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-[#B8E600] transition-colors"
                         >
                           Confirmar Período
                         </button>
@@ -631,46 +662,46 @@ export default function FACloserHub() {
 
             {/* LIVE KPI DASHBOARD STRIP */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="bg-[#0E0E0E] border border-white/[0.06] rounded-xl p-3.5 flex flex-col justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">
+              <div className="bg-[#11141F] border border-[#202638] rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#7E8B9F]">
                   Total Vendas
                 </span>
-                <p className="text-xl font-bold text-white font-mono mt-1">
+                <p className="text-xl font-extrabold text-white font-mono mt-1">
                   {summary.totalVendas}
                 </p>
-                <span className="text-[10px] text-white/40 mt-1">
+                <span className="text-[10px] text-[#64748B] mt-1">
                   {summary.vNovos} novos + {summary.vBase} base
                 </span>
               </div>
 
-              <div className="bg-[#0E0E0E] border border-white/[0.06] rounded-xl p-3.5 flex flex-col justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">
+              <div className="bg-[#11141F] border border-[#202638] rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#7E8B9F]">
                   Faturamento
                 </span>
-                <p className="text-xl font-bold text-white font-mono mt-1 truncate">
+                <p className="text-xl font-extrabold text-[#C6F500] font-mono mt-1 truncate">
                   {formatCurrency(summary.totalFaturado)}
                 </p>
-                <span className="text-[10px] text-white/40 mt-1">Vendas consolidadas</span>
+                <span className="text-[10px] text-[#64748B] mt-1">Vendas consolidadas</span>
               </div>
 
-              <div className="bg-[#0E0E0E] border border-white/[0.06] rounded-xl p-3.5 flex flex-col justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">
+              <div className="bg-[#11141F] border border-[#202638] rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#7E8B9F]">
                   Em Negociação
                 </span>
                 <p className="text-xl font-bold text-white/80 font-mono mt-1 truncate">
                   {formatCurrency(summary.valNegociacao)}
                 </p>
-                <span className="text-[10px] text-white/40 mt-1">Trabalho na base</span>
+                <span className="text-[10px] text-[#64748B] mt-1">Trabalho na base</span>
               </div>
 
-              <div className="bg-[#0E0E0E] border border-white/[0.06] rounded-xl p-3.5 flex flex-col justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">
+              <div className="bg-[#11141F] border border-[#202638] rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#7E8B9F]">
                   Conversão Geral
                 </span>
-                <p className="text-xl font-bold text-emerald-400 font-mono mt-1">
+                <p className="text-xl font-extrabold text-[#C6F500] font-mono mt-1">
                   {summary.conversaoGeral.toFixed(1)}%
                 </p>
-                <span className="text-[10px] text-emerald-400/60 mt-1">Eficiência global</span>
+                <span className="text-[10px] text-[#C6F500]/70 mt-1 font-medium">Eficiência global</span>
               </div>
             </div>
 
@@ -679,18 +710,18 @@ export default function FACloserHub() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              className="bg-[#0E0E0E] border border-white/[0.07] rounded-2xl p-6 sm:p-7 shadow-lg"
+              className="bg-[#11141F] border border-[#202638] rounded-2xl p-6 sm:p-7 shadow-lg"
             >
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center text-white/70">
+                  <div className="w-8 h-8 rounded-lg bg-[#C6F500]/10 border border-[#C6F500]/20 flex items-center justify-center text-[#C6F500]">
                     <PieChart size={16} />
                   </div>
                   <div>
                     <h2 className="text-[15px] font-bold text-white tracking-wide">
                       ORÇAMENTOS NOVOS NO DIA
                     </h2>
-                    <p className="text-[11px] text-white/40">
+                    <p className="text-[11px] text-[#7E8B9F]">
                       Métricas de primeiras abordagens e novos orçamentos
                     </p>
                   </div>
@@ -700,12 +731,12 @@ export default function FACloserHub() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {/* Quantos Orçamentos */}
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold text-white/60 uppercase tracking-wider">
+                  <label className="text-[11px] font-bold text-[#8F9CAE] uppercase tracking-wider">
                     Quantos Orçamentos
                   </label>
                   <div className="relative group">
                     <Hash
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/70 transition-colors"
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748B] group-focus-within:text-[#C6F500] transition-colors"
                       size={15}
                     />
                     <input
@@ -713,19 +744,19 @@ export default function FACloserHub() {
                       placeholder="0"
                       value={currentData.orcamentosNovos}
                       onChange={(e) => handleChange('orcamentosNovos', e.target.value)}
-                      className="w-full bg-[#050505] border border-white/10 rounded-xl py-3 pl-9 pr-3 text-white text-sm focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/40 transition-all placeholder:text-white/20 font-mono hover:border-white/20"
+                      className="w-full bg-[#090B10] border border-[#1E2436] rounded-xl py-3 pl-9 pr-3 text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#C6F500]/40 focus:border-[#C6F500]/60 transition-all placeholder:text-[#475569] font-mono hover:border-[#2D364D]"
                     />
                   </div>
                 </div>
 
                 {/* Quantas Vendas */}
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold text-white/60 uppercase tracking-wider">
+                  <label className="text-[11px] font-bold text-[#8F9CAE] uppercase tracking-wider">
                     Quantas Vendas
                   </label>
                   <div className="relative group">
                     <CheckCircle2
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/70 transition-colors"
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748B] group-focus-within:text-[#C6F500] transition-colors"
                       size={15}
                     />
                     <input
@@ -733,19 +764,19 @@ export default function FACloserHub() {
                       placeholder="0"
                       value={currentData.vendasNovos}
                       onChange={(e) => handleChange('vendasNovos', e.target.value)}
-                      className="w-full bg-[#050505] border border-white/10 rounded-xl py-3 pl-9 pr-3 text-white text-sm focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/40 transition-all placeholder:text-white/20 font-mono hover:border-white/20"
+                      className="w-full bg-[#090B10] border border-[#1E2436] rounded-xl py-3 pl-9 pr-3 text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#C6F500]/40 focus:border-[#C6F500]/60 transition-all placeholder:text-[#475569] font-mono hover:border-[#2D364D]"
                     />
                   </div>
                 </div>
 
                 {/* Valor de Venda */}
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold text-white/60 uppercase tracking-wider">
+                  <label className="text-[11px] font-bold text-[#8F9CAE] uppercase tracking-wider">
                     Valor de Venda
                   </label>
                   <div className="relative group">
                     <DollarSign
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/70 transition-colors"
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748B] group-focus-within:text-[#C6F500] transition-colors"
                       size={15}
                     />
                     <input
@@ -753,7 +784,7 @@ export default function FACloserHub() {
                       placeholder="R$ 0,00"
                       value={currentData.valorVendaNovos}
                       onChange={(e) => handleCurrencyInput('valorVendaNovos', e.target.value)}
-                      className="w-full bg-[#050505] border border-white/10 rounded-xl py-3 pl-9 pr-3 text-white text-sm focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/40 transition-all placeholder:text-white/20 font-mono hover:border-white/20"
+                      className="w-full bg-[#090B10] border border-[#1E2436] rounded-xl py-3 pl-9 pr-3 text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#C6F500]/40 focus:border-[#C6F500]/60 transition-all placeholder:text-[#475569] font-mono hover:border-[#2D364D]"
                     />
                   </div>
                 </div>
@@ -765,18 +796,18 @@ export default function FACloserHub() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.08 }}
-              className="bg-[#0E0E0E] border border-white/[0.07] rounded-2xl p-6 sm:p-7 shadow-lg"
+              className="bg-[#11141F] border border-[#202638] rounded-2xl p-6 sm:p-7 shadow-lg"
             >
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center text-white/70">
+                  <div className="w-8 h-8 rounded-lg bg-[#C6F500]/10 border border-[#C6F500]/20 flex items-center justify-center text-[#C6F500]">
                     <BarChart3 size={16} />
                   </div>
                   <div>
                     <h2 className="text-[15px] font-bold text-white tracking-wide">
                       TRABALHO NA BASE
                     </h2>
-                    <p className="text-[11px] text-white/40">
+                    <p className="text-[11px] text-[#7E8B9F]">
                       Métricas de follow-up, negociação ativa e vendas recuperadas
                     </p>
                   </div>
@@ -786,12 +817,12 @@ export default function FACloserHub() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Quantos Follow Realizados */}
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold text-white/60 uppercase tracking-wider">
+                  <label className="text-[11px] font-bold text-[#8F9CAE] uppercase tracking-wider">
                     Quantos Follow Realizados
                   </label>
                   <div className="relative group">
                     <Hash
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/70 transition-colors"
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748B] group-focus-within:text-[#C6F500] transition-colors"
                       size={15}
                     />
                     <input
@@ -799,19 +830,19 @@ export default function FACloserHub() {
                       placeholder="0"
                       value={currentData.followRealizados}
                       onChange={(e) => handleChange('followRealizados', e.target.value)}
-                      className="w-full bg-[#050505] border border-white/10 rounded-xl py-3 pl-9 pr-3 text-white text-sm focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/40 transition-all placeholder:text-white/20 font-mono hover:border-white/20"
+                      className="w-full bg-[#090B10] border border-[#1E2436] rounded-xl py-3 pl-9 pr-3 text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#C6F500]/40 focus:border-[#C6F500]/60 transition-all placeholder:text-[#475569] font-mono hover:border-[#2D364D]"
                     />
                   </div>
                 </div>
 
                 {/* Valor em Negociação */}
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold text-white/60 uppercase tracking-wider">
+                  <label className="text-[11px] font-bold text-[#8F9CAE] uppercase tracking-wider">
                     Valor em Negociação
                   </label>
                   <div className="relative group">
                     <DollarSign
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/70 transition-colors"
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748B] group-focus-within:text-[#C6F500] transition-colors"
                       size={15}
                     />
                     <input
@@ -819,19 +850,19 @@ export default function FACloserHub() {
                       placeholder="R$ 0,00"
                       value={currentData.valorNegociacaoBase}
                       onChange={(e) => handleCurrencyInput('valorNegociacaoBase', e.target.value)}
-                      className="w-full bg-[#050505] border border-white/10 rounded-xl py-3 pl-9 pr-3 text-white text-sm focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/40 transition-all placeholder:text-white/20 font-mono hover:border-white/20"
+                      className="w-full bg-[#090B10] border border-[#1E2436] rounded-xl py-3 pl-9 pr-3 text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#C6F500]/40 focus:border-[#C6F500]/60 transition-all placeholder:text-[#475569] font-mono hover:border-[#2D364D]"
                     />
                   </div>
                 </div>
 
                 {/* Quantas Vendas */}
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold text-white/60 uppercase tracking-wider">
+                  <label className="text-[11px] font-bold text-[#8F9CAE] uppercase tracking-wider">
                     Quantas Vendas
                   </label>
                   <div className="relative group">
                     <CheckCircle2
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/70 transition-colors"
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748B] group-focus-within:text-[#C6F500] transition-colors"
                       size={15}
                     />
                     <input
@@ -839,19 +870,19 @@ export default function FACloserHub() {
                       placeholder="0"
                       value={currentData.vendasBase}
                       onChange={(e) => handleChange('vendasBase', e.target.value)}
-                      className="w-full bg-[#050505] border border-white/10 rounded-xl py-3 pl-9 pr-3 text-white text-sm focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/40 transition-all placeholder:text-white/20 font-mono hover:border-white/20"
+                      className="w-full bg-[#090B10] border border-[#1E2436] rounded-xl py-3 pl-9 pr-3 text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#C6F500]/40 focus:border-[#C6F500]/60 transition-all placeholder:text-[#475569] font-mono hover:border-[#2D364D]"
                     />
                   </div>
                 </div>
 
                 {/* Valor de Vendas */}
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold text-white/60 uppercase tracking-wider">
+                  <label className="text-[11px] font-bold text-[#8F9CAE] uppercase tracking-wider">
                     Valor de Vendas
                   </label>
                   <div className="relative group">
                     <DollarSign
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white/70 transition-colors"
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748B] group-focus-within:text-[#C6F500] transition-colors"
                       size={15}
                     />
                     <input
@@ -859,7 +890,7 @@ export default function FACloserHub() {
                       placeholder="R$ 0,00"
                       value={currentData.valorVendasBase}
                       onChange={(e) => handleCurrencyInput('valorVendasBase', e.target.value)}
-                      className="w-full bg-[#050505] border border-white/10 rounded-xl py-3 pl-9 pr-3 text-white text-sm focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/40 transition-all placeholder:text-white/20 font-mono hover:border-white/20"
+                      className="w-full bg-[#090B10] border border-[#1E2436] rounded-xl py-3 pl-9 pr-3 text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#C6F500]/40 focus:border-[#C6F500]/60 transition-all placeholder:text-[#475569] font-mono hover:border-[#2D364D]"
                     />
                   </div>
                 </div>
@@ -881,14 +912,14 @@ export default function FACloserHub() {
               )}
             </AnimatePresence>
 
-            {/* Action Buttons */}
+            {/* Action Buttons with Fazendo Acontecer Lime Glow */}
             <div className="space-y-3 pt-2">
               <motion.button
-                whileHover={{ scale: 1.008 }}
+                whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.985 }}
                 onClick={generatePDF}
                 disabled={isGenerating}
-                className="w-full py-4 bg-white hover:bg-gray-100 text-black rounded-xl font-bold text-sm shadow-[0_4px_20px_rgba(255,255,255,0.1)] transition-all flex justify-center items-center gap-2.5 disabled:opacity-60 disabled:cursor-not-allowed uppercase tracking-wider"
+                className="w-full py-4 bg-[#C6F500] hover:bg-[#B5E200] text-black rounded-xl font-extrabold text-sm shadow-[0_4px_25px_rgba(198,245,0,0.25)] transition-all flex justify-center items-center gap-2.5 disabled:opacity-60 disabled:cursor-not-allowed uppercase tracking-wider"
               >
                 {isGenerating ? (
                   <div className="w-5 h-5 border-[2px] border-black/20 border-t-black rounded-full animate-spin" />
@@ -910,13 +941,13 @@ export default function FACloserHub() {
                   exit={{ opacity: 0, height: 0 }}
                   className="pt-2 text-center overflow-hidden pb-2"
                 >
-                  <p className="text-white/80 text-sm font-medium flex items-center justify-center gap-2 mb-2">
-                    <CheckCircle2 size={16} className="text-emerald-400" />
+                  <p className="text-white/90 text-sm font-semibold flex items-center justify-center gap-2 mb-2">
+                    <CheckCircle2 size={16} className="text-[#C6F500]" />
                     Relatório de {selectedCloser} gerado e baixado com sucesso!
                   </p>
                   <button
                     onClick={generatePDF}
-                    className="text-white/40 hover:text-white transition-colors text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 mx-auto"
+                    className="text-[#7E8B9F] hover:text-[#C6F500] transition-colors text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 mx-auto font-semibold"
                   >
                     <Download size={13} /> Baixar novamente
                   </button>
@@ -932,8 +963,8 @@ export default function FACloserHub() {
           __html: `
         .bg-grid-pattern {
           background-image: 
-            linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+            linear-gradient(to right, rgba(198, 245, 0, 0.04) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(198, 245, 0, 0.04) 1px, transparent 1px);
           background-size: 50px 50px;
         }
         .animate-grid-scroll {
@@ -950,11 +981,11 @@ export default function FACloserHub() {
           background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background-color: rgba(255, 255, 255, 0.08);
+          background-color: rgba(198, 245, 0, 0.15);
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background-color: rgba(255, 255, 255, 0.16);
+          background-color: rgba(198, 245, 0, 0.3);
         }
       `
         }}
