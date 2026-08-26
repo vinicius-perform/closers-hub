@@ -16,9 +16,8 @@ import {
   PieChart,
   ChevronDown,
   UserCheck,
-  TrendingUp,
-  Sparkles,
-  LayoutDashboard
+  LayoutDashboard,
+  Wallet
 } from 'lucide-react';
 
 import { DayPicker, DateRange } from 'react-day-picker';
@@ -32,23 +31,27 @@ interface CloserFormData {
   // Orçamentos Novos no Dia
   orcamentosNovos: string;
   vendasNovos: string;
-  valorVendaNovos: string;
+  valorContratoNovos: string;
+  cashColetadoNovos: string;
 
   // Trabalho na Base
   followRealizados: string;
   valorNegociacaoBase: string;
   vendasBase: string;
-  valorVendasBase: string;
+  valorContratoBase: string;
+  cashColetadoBase: string;
 }
 
 const INITIAL_CLOSER_STATE: CloserFormData = {
   orcamentosNovos: '',
   vendasNovos: '',
-  valorVendaNovos: '',
+  valorContratoNovos: '',
+  cashColetadoNovos: '',
   followRealizados: '',
   valorNegociacaoBase: '',
   vendasBase: '',
-  valorVendasBase: ''
+  valorContratoBase: '',
+  cashColetadoBase: ''
 };
 
 export default function FACloserHub() {
@@ -102,16 +105,19 @@ export default function FACloserHub() {
   const summary = useMemo(() => {
     const orcNovos = parseInt(currentData.orcamentosNovos, 10) || 0;
     const vNovos = parseInt(currentData.vendasNovos, 10) || 0;
-    const valVendaNovos = parseCurrency(currentData.valorVendaNovos);
+    const valContratoNovos = parseCurrency(currentData.valorContratoNovos);
+    const cashNovos = parseCurrency(currentData.cashColetadoNovos);
 
     const fRealizados = parseInt(currentData.followRealizados, 10) || 0;
     const valNegociacao = parseCurrency(currentData.valorNegociacaoBase);
     const vBase = parseInt(currentData.vendasBase, 10) || 0;
-    const valVendasBase = parseCurrency(currentData.valorVendasBase);
+    const valContratoBase = parseCurrency(currentData.valorContratoBase);
+    const cashBase = parseCurrency(currentData.cashColetadoBase);
 
     const totalVendas = vNovos + vBase;
-    const totalFaturado = valVendaNovos + valVendasBase;
-    const ticketMedio = totalVendas > 0 ? totalFaturado / totalVendas : 0;
+    const totalContratos = valContratoNovos + valContratoBase;
+    const totalCashColetado = cashNovos + cashBase;
+    const ticketMedio = totalVendas > 0 ? totalContratos / totalVendas : 0;
     const taxaConversaoNovos = orcNovos > 0 ? (vNovos / orcNovos) * 100 : 0;
     const taxaConversaoBase = fRealizados > 0 ? (vBase / fRealizados) * 100 : 0;
     const totalInteracoes = orcNovos + fRealizados;
@@ -120,13 +126,16 @@ export default function FACloserHub() {
     return {
       orcNovos,
       vNovos,
-      valVendaNovos,
+      valContratoNovos,
+      cashNovos,
       fRealizados,
       valNegociacao,
       vBase,
-      valVendasBase,
+      valContratoBase,
+      cashBase,
       totalVendas,
-      totalFaturado,
+      totalContratos,
+      totalCashColetado,
       ticketMedio,
       taxaConversaoNovos,
       taxaConversaoBase,
@@ -165,11 +174,13 @@ export default function FACloserHub() {
     if (
       d.orcamentosNovos === '' &&
       d.vendasNovos === '' &&
-      d.valorVendaNovos === '' &&
+      d.valorContratoNovos === '' &&
+      d.cashColetadoNovos === '' &&
       d.followRealizados === '' &&
       d.valorNegociacaoBase === '' &&
       d.vendasBase === '' &&
-      d.valorVendasBase === ''
+      d.valorContratoBase === '' &&
+      d.cashColetadoBase === ''
     ) {
       return `Preencha pelo menos um campo para gerar o relatório de ${selectedCloser}.`;
     }
@@ -287,16 +298,16 @@ export default function FACloserHub() {
       drawInfoItem('Período de Análise:', formatPeriod(), MARGIN + colWidth, currentY);
       currentY += 16;
 
-      // 3. CARDS DE RESUMO EXECUTIVO (4 Kpis)
+      // 3. CARDS DE RESUMO EXECUTIVO (4 KPIs)
       const kpiCardY = currentY;
       const kpiCardH = 26;
       const kpiW = (CONTENT_WIDTH - 9) / 4;
 
       const kpis = [
-        { label: 'FATURAMENTO TOTAL', val: formatCurrency(summary.totalFaturado), highlight: true },
+        { label: 'VALOR DE CONTRATO', val: formatCurrency(summary.totalContratos), highlight: true },
+        { label: 'CASH COLETADO', val: formatCurrency(summary.totalCashColetado), highlight: true },
         { label: 'TOTAL DE VENDAS', val: `${summary.totalVendas} Vendas`, highlight: false },
-        { label: 'EM NEGOCIAÇÃO', val: formatCurrency(summary.valNegociacao), highlight: false },
-        { label: 'EFICIÊNCIA GERAL', val: `${summary.conversaoGeral.toFixed(1)}%`, highlight: false }
+        { label: 'EM NEGOCIAÇÃO', val: formatCurrency(summary.valNegociacao), highlight: false }
       ];
 
       kpis.forEach((kpi, idx) => {
@@ -310,15 +321,15 @@ export default function FACloserHub() {
         }
         doc.roundedRect(x, kpiCardY, kpiW, kpiCardH, 2.5, 2.5, 'FD');
 
-        doc.setFontSize(6.5);
+        doc.setFontSize(6.2);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(kpi.highlight ? 198 : 100, kpi.highlight ? 245 : 115, kpi.highlight ? 0 : 135);
-        doc.text(kpi.label, x + 3.5, kpiCardY + 7);
+        doc.text(kpi.label, x + 3, kpiCardY + 7);
 
-        doc.setFontSize(10);
+        doc.setFontSize(9.5);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(kpi.highlight ? 255 : 20, kpi.highlight ? 255 : 25, kpi.highlight ? 255 : 35);
-        doc.text(kpi.val, x + 3.5, kpiCardY + 18);
+        doc.text(kpi.val, x + 3, kpiCardY + 18);
       });
 
       currentY = kpiCardY + kpiCardH + 14;
@@ -369,8 +380,9 @@ export default function FACloserHub() {
       currentY = drawSectionHeader('ORÇAMENTOS NOVOS NO DIA', currentY);
       currentY = drawTableRow('Quantos Orçamentos', currentData.orcamentosNovos || '0', currentY, false);
       currentY = drawTableRow('Quantas Vendas', currentData.vendasNovos || '0', currentY, true);
-      currentY = drawTableRow('Valor de Venda', currentData.valorVendaNovos || 'R$ 0,00', currentY, false);
-      currentY = drawTableRow('Taxa de Conversão (Novos)', `${summary.taxaConversaoNovos.toFixed(1)}%`, currentY, true);
+      currentY = drawTableRow('Valor de Contrato', currentData.valorContratoNovos || 'R$ 0,00', currentY, false);
+      currentY = drawTableRow('Cash Coletado', currentData.cashColetadoNovos || 'R$ 0,00', currentY, true);
+      currentY = drawTableRow('Taxa de Conversão (Novos)', `${summary.taxaConversaoNovos.toFixed(1)}%`, currentY, false);
 
       currentY += 12;
 
@@ -379,8 +391,9 @@ export default function FACloserHub() {
       currentY = drawTableRow('Quantos Follow Realizados', currentData.followRealizados || '0', currentY, false);
       currentY = drawTableRow('Valor em Negociação', currentData.valorNegociacaoBase || 'R$ 0,00', currentY, true);
       currentY = drawTableRow('Quantas Vendas', currentData.vendasBase || '0', currentY, false);
-      currentY = drawTableRow('Valor de Vendas', currentData.valorVendasBase || 'R$ 0,00', currentY, true);
-      currentY = drawTableRow('Taxa de Conversão (Base)', `${summary.taxaConversaoBase.toFixed(1)}%`, currentY, false);
+      currentY = drawTableRow('Valor de Contrato', currentData.valorContratoBase || 'R$ 0,00', currentY, true);
+      currentY = drawTableRow('Cash Coletado', currentData.cashColetadoBase || 'R$ 0,00', currentY, false);
+      currentY = drawTableRow('Taxa de Conversão (Base)', `${summary.taxaConversaoBase.toFixed(1)}%`, currentY, true);
 
       currentY += 12;
 
@@ -388,7 +401,8 @@ export default function FACloserHub() {
       currentY = drawSectionHeader('SÍNTESE CONSOLIDADA DO DIA', currentY);
       currentY = drawTableRow('Total de Vendas Realizadas (Novos + Base)', `${summary.totalVendas} Vendas`, currentY, false);
       currentY = drawTableRow('Ticket Médio Geral por Venda', formatCurrency(summary.ticketMedio), currentY, true);
-      currentY = drawTableRow('FATURAMENTO TOTAL REALIZADO', formatCurrency(summary.totalFaturado), currentY, false, true);
+      currentY = drawTableRow('TOTAL EM CONTRATOS FECHADOS', formatCurrency(summary.totalContratos), currentY, false);
+      currentY = drawTableRow('TOTAL CASH COLETADO (RECEITA)', formatCurrency(summary.totalCashColetado), currentY, false, true);
 
       // FOOTER
       doc.setFontSize(7);
@@ -471,7 +485,7 @@ export default function FACloserHub() {
               </div>
             </div>
 
-            {/* Menu Active Pill Item ('Visão Geral' styled like the screenshot) */}
+            {/* Menu Active Pill Item */}
             <div className="space-y-2">
               <div className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl bg-[#C6F500] text-black font-bold text-sm shadow-[0_0_25px_rgba(198,245,0,0.22)]">
                 <div className="flex items-center gap-2.5">
@@ -507,9 +521,15 @@ export default function FACloserHub() {
                   <span className="font-bold text-white font-mono">{summary.totalVendas} un</span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-[#8F9CAE]">Faturamento:</span>
+                  <span className="text-[#8F9CAE]">Valor Contrato:</span>
+                  <span className="font-bold text-white font-mono">
+                    {formatCurrency(summary.totalContratos)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-[#8F9CAE]">Cash Coletado:</span>
                   <span className="font-bold text-[#C6F500] font-mono">
-                    {formatCurrency(summary.totalFaturado)}
+                    {formatCurrency(summary.totalCashColetado)}
                   </span>
                 </div>
               </div>
@@ -676,32 +696,32 @@ export default function FACloserHub() {
 
               <div className="bg-[#11141F] border border-[#202638] rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#7E8B9F]">
-                  Faturamento
+                  Valor Contrato
+                </span>
+                <p className="text-xl font-extrabold text-white font-mono mt-1 truncate">
+                  {formatCurrency(summary.totalContratos)}
+                </p>
+                <span className="text-[10px] text-[#64748B] mt-1">Contratos fechados</span>
+              </div>
+
+              <div className="bg-[#11141F] border border-[#202638] rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#7E8B9F]">
+                  Cash Coletado
                 </span>
                 <p className="text-xl font-extrabold text-[#C6F500] font-mono mt-1 truncate">
-                  {formatCurrency(summary.totalFaturado)}
+                  {formatCurrency(summary.totalCashColetado)}
                 </p>
-                <span className="text-[10px] text-[#64748B] mt-1">Vendas consolidadas</span>
+                <span className="text-[10px] text-[#C6F500]/70 mt-1 font-medium">Receita recebida</span>
               </div>
 
               <div className="bg-[#11141F] border border-[#202638] rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#7E8B9F]">
                   Em Negociação
                 </span>
-                <p className="text-xl font-bold text-white/80 font-mono mt-1 truncate">
+                <p className="text-xl font-extrabold text-white/80 font-mono mt-1 truncate">
                   {formatCurrency(summary.valNegociacao)}
                 </p>
                 <span className="text-[10px] text-[#64748B] mt-1">Trabalho na base</span>
-              </div>
-
-              <div className="bg-[#11141F] border border-[#202638] rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#7E8B9F]">
-                  Conversão Geral
-                </span>
-                <p className="text-xl font-extrabold text-[#C6F500] font-mono mt-1">
-                  {summary.conversaoGeral.toFixed(1)}%
-                </p>
-                <span className="text-[10px] text-[#C6F500]/70 mt-1 font-medium">Eficiência global</span>
               </div>
             </div>
 
@@ -728,7 +748,7 @@ export default function FACloserHub() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Quantos Orçamentos */}
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-bold text-[#8F9CAE] uppercase tracking-wider">
@@ -769,10 +789,10 @@ export default function FACloserHub() {
                   </div>
                 </div>
 
-                {/* Valor de Venda */}
+                {/* Valor de Contrato */}
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-bold text-[#8F9CAE] uppercase tracking-wider">
-                    Valor de Venda
+                    Valor de Contrato
                   </label>
                   <div className="relative group">
                     <DollarSign
@@ -782,9 +802,30 @@ export default function FACloserHub() {
                     <input
                       type="text"
                       placeholder="R$ 0,00"
-                      value={currentData.valorVendaNovos}
-                      onChange={(e) => handleCurrencyInput('valorVendaNovos', e.target.value)}
+                      value={currentData.valorContratoNovos}
+                      onChange={(e) => handleCurrencyInput('valorContratoNovos', e.target.value)}
                       className="w-full bg-[#090B10] border border-[#1E2436] rounded-xl py-3 pl-9 pr-3 text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#C6F500]/40 focus:border-[#C6F500]/60 transition-all placeholder:text-[#475569] font-mono hover:border-[#2D364D]"
+                    />
+                  </div>
+                </div>
+
+                {/* Cash Coletado */}
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-[#C6F500] uppercase tracking-wider flex items-center gap-1.5">
+                    <Wallet size={13} className="text-[#C6F500]" />
+                    Cash Coletado
+                  </label>
+                  <div className="relative group">
+                    <DollarSign
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#C6F500]/60 group-focus-within:text-[#C6F500] transition-colors"
+                      size={15}
+                    />
+                    <input
+                      type="text"
+                      placeholder="R$ 0,00"
+                      value={currentData.cashColetadoNovos}
+                      onChange={(e) => handleCurrencyInput('cashColetadoNovos', e.target.value)}
+                      className="w-full bg-[#090B10] border border-[#C6F500]/30 rounded-xl py-3 pl-9 pr-3 text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#C6F500]/50 focus:border-[#C6F500] transition-all placeholder:text-[#475569] font-mono hover:border-[#C6F500]/50"
                     />
                   </div>
                 </div>
@@ -875,10 +916,10 @@ export default function FACloserHub() {
                   </div>
                 </div>
 
-                {/* Valor de Vendas */}
+                {/* Valor de Contrato */}
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-bold text-[#8F9CAE] uppercase tracking-wider">
-                    Valor de Vendas
+                    Valor de Contrato
                   </label>
                   <div className="relative group">
                     <DollarSign
@@ -888,9 +929,30 @@ export default function FACloserHub() {
                     <input
                       type="text"
                       placeholder="R$ 0,00"
-                      value={currentData.valorVendasBase}
-                      onChange={(e) => handleCurrencyInput('valorVendasBase', e.target.value)}
+                      value={currentData.valorContratoBase}
+                      onChange={(e) => handleCurrencyInput('valorContratoBase', e.target.value)}
                       className="w-full bg-[#090B10] border border-[#1E2436] rounded-xl py-3 pl-9 pr-3 text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#C6F500]/40 focus:border-[#C6F500]/60 transition-all placeholder:text-[#475569] font-mono hover:border-[#2D364D]"
+                    />
+                  </div>
+                </div>
+
+                {/* Cash Coletado */}
+                <div className="space-y-1.5 sm:col-span-2">
+                  <label className="text-[11px] font-bold text-[#C6F500] uppercase tracking-wider flex items-center gap-1.5">
+                    <Wallet size={13} className="text-[#C6F500]" />
+                    Cash Coletado
+                  </label>
+                  <div className="relative group">
+                    <DollarSign
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#C6F500]/60 group-focus-within:text-[#C6F500] transition-colors"
+                      size={15}
+                    />
+                    <input
+                      type="text"
+                      placeholder="R$ 0,00"
+                      value={currentData.cashColetadoBase}
+                      onChange={(e) => handleCurrencyInput('cashColetadoBase', e.target.value)}
+                      className="w-full bg-[#090B10] border border-[#C6F500]/30 rounded-xl py-3 pl-9 pr-3 text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#C6F500]/50 focus:border-[#C6F500] transition-all placeholder:text-[#475569] font-mono hover:border-[#C6F500]/50"
                     />
                   </div>
                 </div>
