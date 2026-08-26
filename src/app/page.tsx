@@ -223,17 +223,34 @@ export default function FACloserHub() {
       };
 
       // 1. HEADER
-      doc.setFillColor(15, 15, 15);
-      doc.roundedRect(MARGIN, currentY, 12, 12, 2.5, 2.5, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.text('FA', MARGIN + 3.2, currentY + 8);
+      let headerOffset = 18;
+      try {
+        const img = new Image();
+        img.src = '/logo.png';
+        await new Promise((resolve) => {
+          if (img.complete) resolve(null);
+          else {
+            img.onload = () => resolve(null);
+            img.onerror = () => resolve(null);
+          }
+        });
+        doc.setFillColor(12, 12, 12);
+        doc.roundedRect(MARGIN, currentY, 48, 12, 2, 2, 'F');
+        doc.addImage(img, 'PNG', MARGIN + 2, currentY + 2, 44, 8);
+        headerOffset = 54;
+      } catch {
+        doc.setFillColor(15, 15, 15);
+        doc.roundedRect(MARGIN, currentY, 12, 12, 2.5, 2.5, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text('FA', MARGIN + 3.2, currentY + 8);
+      }
 
       doc.setTextColor(18, 18, 18);
-      doc.setFontSize(14);
+      doc.setFontSize(13);
       doc.setFont('helvetica', 'bold');
-      doc.text(`RELATÓRIO INDIVIDUAL DE CLOSER`, MARGIN + 18, currentY + 8.5);
+      doc.text(`RELATÓRIO INDIVIDUAL DE CLOSER`, MARGIN + headerOffset, currentY + 8.5);
 
       doc.setFontSize(8);
       doc.setTextColor(140, 140, 140);
@@ -400,18 +417,15 @@ export default function FACloserHub() {
         <aside className="w-full md:w-[290px] bg-[#070707] border-r border-white/[0.06] p-6 lg:p-7 flex flex-col shrink-0 flex-none justify-between">
           <div className="space-y-8">
             {/* Logo */}
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-black font-extrabold tracking-tighter text-lg shadow-[0_0_20px_rgba(255,255,255,0.15)]">
-                FA
-              </div>
-              <div>
-                <h1 className="text-lg font-bold tracking-tight text-white leading-none">
-                  Closer Hub
-                </h1>
-                <p className="text-[11px] text-white/40 font-mono tracking-wider mt-1 uppercase">
-                  Gestão Comercial
-                </p>
-              </div>
+            <div className="space-y-1.5">
+              <img
+                src="/logo.png"
+                alt="Logo"
+                className="h-8 w-auto max-w-[210px] object-contain drop-shadow-[0_0_15px_rgba(200,255,0,0.12)]"
+              />
+              <p className="text-[10px] text-white/40 font-mono tracking-widest uppercase pl-0.5">
+                Hub Closers • Gestão Comercial
+              </p>
             </div>
 
             {/* SELEÇÃO DO CLOSER */}
