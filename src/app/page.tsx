@@ -25,7 +25,7 @@ import 'react-day-picker/style.css';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-type CloserName = 'José' | 'Thais';
+type CloserName = string;
 
 interface CloserFormData {
   // Orçamentos Novos no Dia
@@ -55,13 +55,13 @@ const INITIAL_CLOSER_STATE: CloserFormData = {
 };
 
 export default function FACloserHub() {
-  const [selectedCloser, setSelectedCloser] = useState<CloserName>('José');
+  const [selectedCloser, setSelectedCloser] = useState<string>('José');
   const [isGenerating, setIsGenerating] = useState(false);
   const [pdfGenerated, setPdfGenerated] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Store data independently for both closers
-  const [closersData, setClosersData] = useState<Record<CloserName, CloserFormData>>({
+  // Store data independently for closers
+  const [closersData, setClosersData] = useState<Record<string, CloserFormData>>({
     'José': { ...INITIAL_CLOSER_STATE },
     'Thais': { ...INITIAL_CLOSER_STATE }
   });
@@ -84,7 +84,8 @@ export default function FACloserHub() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const currentData = closersData[selectedCloser];
+  const closerKey = selectedCloser.trim() || 'default';
+  const currentData = closersData[closerKey] || INITIAL_CLOSER_STATE;
 
   // Helper to parse currency string into number
   const parseCurrency = (val: string): number => {
@@ -144,10 +145,11 @@ export default function FACloserHub() {
   }, [currentData]);
 
   const handleChange = (field: keyof CloserFormData, value: string) => {
+    const key = selectedCloser.trim() || 'default';
     setClosersData((prev) => ({
       ...prev,
-      [selectedCloser]: {
-        ...prev[selectedCloser],
+      [key]: {
+        ...(prev[key] || INITIAL_CLOSER_STATE),
         [field]: value
       }
     }));
@@ -167,9 +169,14 @@ export default function FACloserHub() {
   };
 
   const validateForm = (): string | null => {
+    if (!selectedCloser.trim()) {
+      return 'Por favor, informe o nome do closer.';
+    }
+
     if (!dateRange?.from) return 'Selecione o período das métricas.';
 
-    const d = closersData[selectedCloser];
+    const key = selectedCloser.trim();
+    const d = closersData[key] || INITIAL_CLOSER_STATE;
 
     if (
       d.orcamentosNovos === '' &&
@@ -182,7 +189,7 @@ export default function FACloserHub() {
       d.valorContratoBase === '' &&
       d.cashColetadoBase === ''
     ) {
-      return `Preencha pelo menos um campo para gerar o relatório de ${selectedCloser}.`;
+      return `Preencha pelo menos um campo para gerar o relatório de ${selectedCloser.trim()}.`;
     }
 
     return null;
@@ -294,7 +301,7 @@ export default function FACloserHub() {
         doc.text(value, x, y + 5.5);
       };
 
-      drawInfoItem('Closer Responsável:', selectedCloser, MARGIN, currentY);
+      drawInfoItem('Closer Responsável:', selectedCloser.trim() || 'Closer', MARGIN, currentY);
       drawInfoItem('Período de Análise:', formatPeriod(), MARGIN + colWidth, currentY);
       currentY += 16;
 
@@ -408,10 +415,11 @@ export default function FACloserHub() {
       doc.setFontSize(7);
       doc.setTextColor(150, 160, 175);
       doc.setFont('helvetica', 'normal');
-      const footerText = `FA Closer Hub | Closer: ${selectedCloser} | Emitido em ${format(new Date(), 'dd/MM/yyyy HH:mm')} | Confidencial`;
+      const closerDisplay = selectedCloser.trim() || 'Closer';
+      const footerText = `FA Closer Hub | Closer: ${closerDisplay} | Emitido em ${format(new Date(), 'dd/MM/yyyy HH:mm')} | Confidencial`;
       doc.text(footerText, MARGIN, 285);
 
-      const cleanCloserName = selectedCloser.toLowerCase();
+      const cleanCloserName = closerDisplay.toLowerCase().replace(/[^a-z0-9]/gi, '_');
       const periodoStr = getPdfSafePeriodString();
       doc.save(`Relatorio_Closer_${cleanCloserName}_${periodoStr}.pdf`);
 
@@ -451,7 +459,7 @@ export default function FACloserHub() {
             </div>
 
             {/* SEÇÃO MENU PRINCIPAL / SELEÇÃO DO CLOSER */}
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <p className="text-[11px] font-bold text-[#64748B] uppercase tracking-widest px-1 flex items-center justify-between">
                 <span>Menu Principal</span>
                 <span className="text-[9px] font-mono bg-[#161924] text-[#94A3B8] px-1.5 py-0.5 rounded border border-[#232838]">
@@ -459,29 +467,54 @@ export default function FACloserHub() {
                 </span>
               </p>
 
-              {/* Selector Pills with Fazendo Acontecer Lime Active Theme */}
-              <div className="grid grid-cols-2 gap-2 p-1.5 bg-[#121520] border border-[#202535] rounded-xl">
-                {(['José', 'Thais'] as CloserName[]).map((closer) => {
-                  const isSelected = selectedCloser === closer;
-                  return (
-                    <button
-                      key={closer}
-                      onClick={() => {
-                        setSelectedCloser(closer);
+              {/* Box de Seleção & Digitação do Closer */}
+              <div className="p-2.5 bg-[#121520] border border-[#202535] rounded-xl space-y-2.5 shadow-[0_4px_20px_rgba(0,0,0,0.25)]">
+                {/* Selector Pills com opções rápidas */}
+                <div className="grid grid-cols-2 gap-2">
+                  {(['José', 'Thais']).map((closer) => {
+                    const isSelected = selectedCloser.trim().toLowerCase() === closer.toLowerCase();
+                    return (
+                      <button
+                        key={closer}
+                        type="button"
+                        onClick={() => {
+                          setSelectedCloser(closer);
+                          setError(null);
+                          setPdfGenerated(false);
+                        }}
+                        className={`relative py-2 px-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#C6F500] text-black shadow-[0_0_18px_rgba(198,245,0,0.35)] scale-[1.02]'
+                            : 'text-[#94A3B8] bg-[#161924]/80 hover:text-white hover:bg-[#181C2B]'
+                        }`}
+                      >
+                        <User size={13} className={isSelected ? 'text-black' : 'text-[#64748B]'} />
+                        {closer}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Campo para digitar o nome do Closer */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold text-[#7E8B9F] uppercase tracking-wider block px-0.5">
+                    Nome do Closer
+                  </label>
+                  <div className="relative flex items-center">
+                    <User size={13} className="absolute left-2.5 text-[#64748B] pointer-events-none" />
+                    <input
+                      type="text"
+                      value={selectedCloser}
+                      onChange={(e) => {
+                        setSelectedCloser(e.target.value);
                         setError(null);
                         setPdfGenerated(false);
                       }}
-                      className={`relative py-2.5 px-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${
-                        isSelected
-                          ? 'bg-[#C6F500] text-black shadow-[0_0_20px_rgba(198,245,0,0.35)] scale-[1.02]'
-                          : 'text-[#94A3B8] hover:text-white hover:bg-[#181C2B]'
-                      }`}
-                    >
-                      <User size={14} className={isSelected ? 'text-black' : 'text-[#64748B]'} />
-                      {closer}
-                    </button>
-                  );
-                })}
+                      placeholder="Digite o nome do closer..."
+                      className="w-full bg-[#0B0D13] border border-[#232838] focus:border-[#C6F500] focus:ring-1 focus:ring-[#C6F500]/40 rounded-lg pl-8 pr-2.5 py-1.5 text-xs font-semibold text-white placeholder-[#475569] outline-none transition-all shadow-inner"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -497,7 +530,7 @@ export default function FACloserHub() {
 
               <div className="pl-4 pt-1">
                 <div className="w-full px-3.5 py-2.5 rounded-lg bg-[#161924] border border-[#232838] text-white text-xs font-semibold flex items-center justify-between">
-                  <span>Visão Geral • {selectedCloser}</span>
+                  <span>Visão Geral • {selectedCloser.trim() || 'Closer'}</span>
                   <span className="w-2 h-2 rounded-full bg-[#C6F500] shadow-[0_0_8px_#C6F500]"></span>
                 </div>
               </div>
@@ -507,7 +540,7 @@ export default function FACloserHub() {
             <div className="p-4 rounded-xl bg-[#121520] border border-[#202535] space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-[#7E8B9F] uppercase tracking-wider font-semibold">
-                  Métricas de {selectedCloser}
+                  Métricas de {selectedCloser.trim() || 'Closer'}
                 </span>
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#C6F500] bg-[#C6F500]/10 px-2 py-0.5 rounded-full border border-[#C6F500]/25">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#C6F500] animate-pulse"></span>
@@ -556,7 +589,7 @@ export default function FACloserHub() {
               <div>
                 <div className="flex items-center gap-2 mb-1.5">
                   <span className="px-2.5 py-0.5 rounded-md bg-[#C6F500]/10 border border-[#C6F500]/25 text-[#C6F500] text-[11px] font-mono font-bold tracking-wide">
-                    Closer: {selectedCloser}
+                    Closer: {selectedCloser.trim() || 'Closer'}
                   </span>
                 </div>
                 <h1 className="text-2xl font-extrabold tracking-tight text-white">
@@ -988,7 +1021,7 @@ export default function FACloserHub() {
                 ) : (
                   <>
                     <FileText size={17} className="text-black" />
-                    Gerar Relatório de {selectedCloser} (PDF)
+                    Gerar Relatório de {selectedCloser.trim() || 'Closer'} (PDF)
                   </>
                 )}
               </motion.button>
@@ -1005,7 +1038,7 @@ export default function FACloserHub() {
                 >
                   <p className="text-white/90 text-sm font-semibold flex items-center justify-center gap-2 mb-2">
                     <CheckCircle2 size={16} className="text-[#C6F500]" />
-                    Relatório de {selectedCloser} gerado e baixado com sucesso!
+                    Relatório de {selectedCloser.trim() || 'Closer'} gerado e baixado com sucesso!
                   </p>
                   <button
                     onClick={generatePDF}
