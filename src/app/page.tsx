@@ -55,16 +55,13 @@ const INITIAL_CLOSER_STATE: CloserFormData = {
 };
 
 export default function FACloserHub() {
-  const [selectedCloser, setSelectedCloser] = useState<string>('José');
+  const [selectedCloser, setSelectedCloser] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [pdfGenerated, setPdfGenerated] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Store data independently for closers
-  const [closersData, setClosersData] = useState<Record<string, CloserFormData>>({
-    'José': { ...INITIAL_CLOSER_STATE },
-    'Thais': { ...INITIAL_CLOSER_STATE }
-  });
+  const [closersData, setClosersData] = useState<Record<string, CloserFormData>>({});
 
   // Date Range State
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -467,53 +464,38 @@ export default function FACloserHub() {
                 </span>
               </p>
 
-              {/* Box de Seleção & Digitação do Closer */}
-              <div className="p-2.5 bg-[#121520] border border-[#202535] rounded-xl space-y-2.5 shadow-[0_4px_20px_rgba(0,0,0,0.25)]">
-                {/* Selector Pills com opções rápidas */}
-                <div className="grid grid-cols-2 gap-2">
-                  {(['José', 'Thais']).map((closer) => {
-                    const isSelected = selectedCloser.trim().toLowerCase() === closer.toLowerCase();
-                    return (
-                      <button
-                        key={closer}
-                        type="button"
-                        onClick={() => {
-                          setSelectedCloser(closer);
-                          setError(null);
-                          setPdfGenerated(false);
-                        }}
-                        className={`relative py-2 px-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                          isSelected
-                            ? 'bg-[#C6F500] text-black shadow-[0_0_18px_rgba(198,245,0,0.35)] scale-[1.02]'
-                            : 'text-[#94A3B8] bg-[#161924]/80 hover:text-white hover:bg-[#181C2B]'
-                        }`}
-                      >
-                        <User size={13} className={isSelected ? 'text-black' : 'text-[#64748B]'} />
-                        {closer}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Campo para digitar o nome do Closer */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-[#7E8B9F] uppercase tracking-wider block px-0.5">
-                    Nome do Closer
-                  </label>
-                  <div className="relative flex items-center">
-                    <User size={13} className="absolute left-2.5 text-[#64748B] pointer-events-none" />
-                    <input
-                      type="text"
-                      value={selectedCloser}
-                      onChange={(e) => {
-                        setSelectedCloser(e.target.value);
+              {/* Box de Digitação do Closer */}
+              <div className="p-3 bg-[#121520] border border-[#202535] rounded-xl space-y-2 shadow-[0_4px_20px_rgba(0,0,0,0.25)]">
+                <label className="text-[10px] font-semibold text-[#7E8B9F] uppercase tracking-wider block px-0.5">
+                  Nome do Closer
+                </label>
+                <div className="relative flex items-center">
+                  <User size={14} className="absolute left-3 text-[#64748B] pointer-events-none" />
+                  <input
+                    type="text"
+                    value={selectedCloser}
+                    onChange={(e) => {
+                      setSelectedCloser(e.target.value);
+                      setError(null);
+                      setPdfGenerated(false);
+                    }}
+                    placeholder="Digite o nome do closer..."
+                    className="w-full bg-[#0B0D13] border border-[#232838] focus:border-[#C6F500] focus:ring-1 focus:ring-[#C6F500]/40 rounded-lg pl-9 pr-7 py-2.5 text-xs font-semibold text-white placeholder-[#525F74] outline-none transition-all shadow-inner"
+                  />
+                  {selectedCloser && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCloser('');
                         setError(null);
                         setPdfGenerated(false);
                       }}
-                      placeholder="Digite o nome do closer..."
-                      className="w-full bg-[#0B0D13] border border-[#232838] focus:border-[#C6F500] focus:ring-1 focus:ring-[#C6F500]/40 rounded-lg pl-8 pr-2.5 py-1.5 text-xs font-semibold text-white placeholder-[#475569] outline-none transition-all shadow-inner"
-                    />
-                  </div>
+                      className="absolute right-2.5 text-[#525F74] hover:text-white text-xs font-bold px-1 transition-colors cursor-pointer"
+                      title="Limpar campo"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
