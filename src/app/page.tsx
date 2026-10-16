@@ -17,7 +17,8 @@ import {
   ChevronDown,
   UserCheck,
   LayoutDashboard,
-  Wallet
+  Wallet,
+  Building2
 } from 'lucide-react';
 
 import { DayPicker, DateRange } from 'react-day-picker';
@@ -56,6 +57,7 @@ const INITIAL_CLOSER_STATE: CloserFormData = {
 
 export default function FACloserHub() {
   const [selectedCloser, setSelectedCloser] = useState<string>('');
+  const [clientName, setClientName] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [pdfGenerated, setPdfGenerated] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -298,8 +300,15 @@ export default function FACloserHub() {
         doc.text(value, x, y + 5.5);
       };
 
-      drawInfoItem('Closer Responsável:', selectedCloser.trim() || 'Closer', MARGIN, currentY);
-      drawInfoItem('Período de Análise:', formatPeriod(), MARGIN + colWidth, currentY);
+      if (clientName.trim()) {
+        const colWidth3 = CONTENT_WIDTH / 3;
+        drawInfoItem('Cliente / Operação:', clientName.trim(), MARGIN, currentY);
+        drawInfoItem('Closer Responsável:', selectedCloser.trim() || 'Closer', MARGIN + colWidth3, currentY);
+        drawInfoItem('Período de Análise:', formatPeriod(), MARGIN + colWidth3 * 2, currentY);
+      } else {
+        drawInfoItem('Closer Responsável:', selectedCloser.trim() || 'Closer', MARGIN, currentY);
+        drawInfoItem('Período de Análise:', formatPeriod(), MARGIN + colWidth, currentY);
+      }
       currentY += 16;
 
       // 3. CARDS DE RESUMO EXECUTIVO (4 KPIs)
@@ -413,12 +422,14 @@ export default function FACloserHub() {
       doc.setTextColor(150, 160, 175);
       doc.setFont('helvetica', 'normal');
       const closerDisplay = selectedCloser.trim() || 'Closer';
-      const footerText = `FA Closer Hub | Closer: ${closerDisplay} | Emitido em ${format(new Date(), 'dd/MM/yyyy HH:mm')} | Confidencial`;
+      const clientPart = clientName.trim() ? ` | Cliente: ${clientName.trim()}` : '';
+      const footerText = `FA Closer Hub | Closer: ${closerDisplay}${clientPart} | Emitido em ${format(new Date(), 'dd/MM/yyyy HH:mm')} | Confidencial`;
       doc.text(footerText, MARGIN, 285);
 
       const cleanCloserName = closerDisplay.toLowerCase().replace(/[^a-z0-9]/gi, '_');
+      const cleanClientName = clientName.trim() ? `_${clientName.trim().toLowerCase().replace(/[^a-z0-9]/gi, '_')}` : '';
       const periodoStr = getPdfSafePeriodString();
-      doc.save(`Relatorio_Closer_${cleanCloserName}_${periodoStr}.pdf`);
+      doc.save(`Relatorio_Closer_${cleanCloserName}${cleanClientName}_${periodoStr}.pdf`);
 
       setPdfGenerated(true);
     } catch (err) {
@@ -464,38 +475,76 @@ export default function FACloserHub() {
                 </span>
               </p>
 
-              {/* Box de Digitação do Closer */}
-              <div className="p-3 bg-[#121520] border border-[#202535] rounded-xl space-y-2 shadow-[0_4px_20px_rgba(0,0,0,0.25)]">
-                <label className="text-[10px] font-semibold text-[#7E8B9F] uppercase tracking-wider block px-0.5">
-                  Nome do Closer
-                </label>
-                <div className="relative flex items-center">
-                  <User size={14} className="absolute left-3 text-[#64748B] pointer-events-none" />
-                  <input
-                    type="text"
-                    value={selectedCloser}
-                    onChange={(e) => {
-                      setSelectedCloser(e.target.value);
-                      setError(null);
-                      setPdfGenerated(false);
-                    }}
-                    placeholder="Digite o nome do closer..."
-                    className="w-full bg-[#0B0D13] border border-[#232838] focus:border-[#C6F500] focus:ring-1 focus:ring-[#C6F500]/40 rounded-lg pl-9 pr-7 py-2.5 text-xs font-semibold text-white placeholder-[#525F74] outline-none transition-all shadow-inner"
-                  />
-                  {selectedCloser && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedCloser('');
+              {/* Box de Digitação do Closer & Cliente */}
+              <div className="p-3 bg-[#121520] border border-[#202535] rounded-xl space-y-3 shadow-[0_4px_20px_rgba(0,0,0,0.25)]">
+                {/* Nome do Closer */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-semibold text-[#7E8B9F] uppercase tracking-wider block px-0.5">
+                    Nome do Closer
+                  </label>
+                  <div className="relative flex items-center">
+                    <User size={14} className="absolute left-3 text-[#64748B] pointer-events-none" />
+                    <input
+                      type="text"
+                      value={selectedCloser}
+                      onChange={(e) => {
+                        setSelectedCloser(e.target.value);
                         setError(null);
                         setPdfGenerated(false);
                       }}
-                      className="absolute right-2.5 text-[#525F74] hover:text-white text-xs font-bold px-1 transition-colors cursor-pointer"
-                      title="Limpar campo"
-                    >
-                      ×
-                    </button>
-                  )}
+                      placeholder="Digite o nome do closer..."
+                      className="w-full bg-[#0B0D13] border border-[#232838] focus:border-[#C6F500] focus:ring-1 focus:ring-[#C6F500]/40 rounded-lg pl-9 pr-7 py-2.5 text-xs font-semibold text-white placeholder-[#525F74] outline-none transition-all shadow-inner"
+                    />
+                    {selectedCloser && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCloser('');
+                          setError(null);
+                          setPdfGenerated(false);
+                        }}
+                        className="absolute right-2.5 text-[#525F74] hover:text-white text-xs font-bold px-1 transition-colors cursor-pointer"
+                        title="Limpar campo"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Nome do Cliente */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-semibold text-[#7E8B9F] uppercase tracking-wider block px-0.5">
+                    Nome do Cliente
+                  </label>
+                  <div className="relative flex items-center">
+                    <Building2 size={14} className="absolute left-3 text-[#64748B] pointer-events-none" />
+                    <input
+                      type="text"
+                      value={clientName}
+                      onChange={(e) => {
+                        setClientName(e.target.value);
+                        setError(null);
+                        setPdfGenerated(false);
+                      }}
+                      placeholder="Digite o nome do cliente..."
+                      className="w-full bg-[#0B0D13] border border-[#232838] focus:border-[#C6F500] focus:ring-1 focus:ring-[#C6F500]/40 rounded-lg pl-9 pr-7 py-2.5 text-xs font-semibold text-white placeholder-[#525F74] outline-none transition-all shadow-inner"
+                    />
+                    {clientName && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setClientName('');
+                          setError(null);
+                          setPdfGenerated(false);
+                        }}
+                        className="absolute right-2.5 text-[#525F74] hover:text-white text-xs font-bold px-1 transition-colors cursor-pointer"
+                        title="Limpar campo"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -569,10 +618,16 @@ export default function FACloserHub() {
             {/* Header & Date Selector */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1C2130] pb-6">
               <div>
-                <div className="flex items-center gap-2 mb-1.5">
+                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                   <span className="px-2.5 py-0.5 rounded-md bg-[#C6F500]/10 border border-[#C6F500]/25 text-[#C6F500] text-[11px] font-mono font-bold tracking-wide">
                     Closer: {selectedCloser.trim() || 'Closer'}
                   </span>
+                  {clientName.trim() && (
+                    <span className="px-2.5 py-0.5 rounded-md bg-[#161924] border border-[#232838] text-white text-[11px] font-mono font-semibold tracking-wide flex items-center gap-1.5">
+                      <Building2 size={11} className="text-[#C6F500]" />
+                      Cliente: {clientName.trim()}
+                    </span>
+                  )}
                 </div>
                 <h1 className="text-2xl font-extrabold tracking-tight text-white">
                   Preenchimento de Métricas
