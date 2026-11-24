@@ -38,6 +38,51 @@ import { ptBR } from 'date-fns/locale';
 type TabType = 'diario' | 'semanal';
 
 /* =========================================================================
+   BASE DE DADOS: CLOSERS E SEUS CLIENTES ESPECÍFICOS
+   ========================================================================= */
+
+const CLOSER_CLIENTS: Record<string, string[]> = {
+  'Thais': [
+    'Dr. Gabriel',
+    'Dr. Tiago Prause',
+    'Dra. Samara Pighinelli',
+    'Dr. Rodrigo Vieira',
+    'Dr Diego Padão',
+    'Dr Kleison Resende',
+    'Dr. Molino',
+    'Dr. Kellison Viana',
+    'Dra. Camila Citra',
+    'Dra. Mari Masiero'
+  ],
+  'Elinaldo': [
+    'Dra. Judite Costa',
+    'Dra Rafaela Nunes',
+    'Dr. Rafael Raso',
+    'Dr. Francisco Lopes',
+    'Dr. Ricardo Raymundi',
+    'Dr. Samyr',
+    'Dra. Celyne',
+    'Dra. Paola Telles',
+    'Dra. Reggina Rillo',
+    'Dra. Jaqueline',
+    'Dra. Layane',
+    'Dra. Patrícia Rufino',
+    'Dra. Wennya',
+    'Dr Hete Maom',
+    'Dra Sandy Farias'
+  ],
+  'José': [
+    'Dra. Marcela Fiel',
+    'Bodyincision'
+  ],
+  'Gabriel': [
+    'Dr. Fernando Silveira'
+  ]
+};
+
+const CLOSERS_LIST = Object.keys(CLOSER_CLIENTS);
+
+/* =========================================================================
    INTERFACES & ESTADOS INICIAIS
    ========================================================================= */
 
@@ -92,22 +137,28 @@ export default function FACloserHub() {
   // Controle de Navegação Principal: Diário vs Semanal
   const [activeTab, setActiveTab] = useState<TabType>('diario');
 
-  // Identificação do Closer e do Cliente
-  const [selectedCloser, setSelectedCloser] = useState<string>('');
-  const [clientName, setClientName] = useState<string>('');
+  // Seleção de Closer e Cliente
+  const [selectedCloser, setSelectedCloser] = useState<string>('Thais');
+  const [clientName, setClientName] = useState<string>('Dr. Gabriel');
 
-  // Estados Globais de Carregamento e Feedback
+  // Estados dos Dropdowns Suspensos Customizados
+  const [isCloserDropdownOpen, setIsCloserDropdownOpen] = useState(false);
+  const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
+  const closerDropdownRef = useRef<HTMLDivElement>(null);
+  const clientDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Estados Globais de Carregamento e Notificações
   const [isGenerating, setIsGenerating] = useState(false);
   const [pdfGenerated, setPdfGenerated] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Armazenamento independente de dados diários por closer
+  // Armazenamento de dados diários por chave de Closer + Cliente
   const [closersData, setClosersData] = useState<Record<string, CloserFormData>>({});
 
-  // Armazenamento independente de dados semanais por closer
+  // Armazenamento de dados semanais por chave de Closer + Cliente
   const [semanalData, setSemanalData] = useState<Record<string, SemanalFormData>>({});
 
-  // Número da Semana (ex: Semana 48)
+  // Número da Semana
   const [selectedWeekNumber, setSelectedWeekNumber] = useState<number>(48);
 
   // Date Range State para o Diário
@@ -118,20 +169,55 @@ export default function FACloserHub() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
 
+  // Fechar menus suspensos ao clicar fora
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
         setIsCalendarOpen(false);
+      }
+      if (closerDropdownRef.current && !closerDropdownRef.current.contains(event.target as Node)) {
+        setIsCloserDropdownOpen(false);
+      }
+      if (clientDropdownRef.current && !clientDropdownRef.current.contains(event.target as Node)) {
+        setIsClientDropdownOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Chave do closer ativo
-  const closerKey = selectedCloser.trim() || 'default';
-  const currentDailyData = closersData[closerKey] || INITIAL_CLOSER_STATE;
-  const currentSemanalData = semanalData[closerKey] || INITIAL_SEMANAL_STATE;
+  // Chave única para isolar os dados de cada combinação de Closer e Cliente
+  const storageKey = useMemo(() => {
+    const c = selectedCloser.trim() || 'default';
+    const cli = clientName.trim() || 'all';
+    return `${c}_${cli}`;
+  }, [selectedCloser, clientName]);
+
+  const currentDailyData = closersData[storageKey] || INITIAL_CLOSER_STATE;
+  const currentSemanalData = semanalData[storageKey] || INITIAL_SEMANAL_STATE;
+
+  // Clientes disponíveis para o closer atualmente selecionado
+  const availableClients = useMemo(() => {
+    if (!selectedCloser || !CLOSER_CLIENTS[selectedCloser]) return [];
+    return CLOSER_CLIENTS[selectedCloser];
+  }, [selectedCloser]);
+
+  // Ao trocar de Closer, seleciona automaticamente o primeiro cliente disponível ou limpa
+  const handleSelectCloser = (closer: string) => {
+    setSelectedCloser(closer);
+    const clients = CLOSER_CLIENTS[closer] || [];
+    setClientName(clients.length > 0 ? clients[0] : '');
+    setIsCloserDropdownOpen(false);
+    setError(null);
+    setPdfGenerated(false);
+  };
+
+  const handleSelectClient = (client: string) => {
+    setClientName(client);
+    setIsClientDropdownOpen(false);
+    setError(null);
+    setPdfGenerated(false);
+  };
 
   /* =========================================================================
      UTILITÁRIOS DE FORMATAÇÃO E CÁLCULO
@@ -239,11 +325,10 @@ export default function FACloserHub() {
      ========================================================================= */
 
   const handleDailyChange = (field: keyof CloserFormData, value: string) => {
-    const key = selectedCloser.trim() || 'default';
     setClosersData((prev) => ({
       ...prev,
-      [key]: {
-        ...(prev[key] || INITIAL_CLOSER_STATE),
+      [storageKey]: {
+        ...(prev[storageKey] || INITIAL_CLOSER_STATE),
         [field]: value
       }
     }));
@@ -263,11 +348,10 @@ export default function FACloserHub() {
   };
 
   const handleSemanalChange = (field: keyof SemanalFormData, value: string) => {
-    const key = selectedCloser.trim() || 'default';
     setSemanalData((prev) => ({
       ...prev,
-      [key]: {
-        ...(prev[key] || INITIAL_SEMANAL_STATE),
+      [storageKey]: {
+        ...(prev[storageKey] || INITIAL_SEMANAL_STATE),
         [field]: value
       }
     }));
@@ -288,10 +372,9 @@ export default function FACloserHub() {
 
   // Preencher Exemplo no Painel Semanal
   const handleLoadSemanalSample = () => {
-    const key = selectedCloser.trim() || 'default';
     setSemanalData((prev) => ({
       ...prev,
-      [key]: {
+      [storageKey]: {
         qtdContratosFechados: '8',
         valorTotalFechado: formatCurrency(42500),
         qtdPropostasNegociacao: '12',
@@ -303,12 +386,11 @@ export default function FACloserHub() {
     setError(null);
   };
 
-  // Limpar dados do painel semanal
+  // Limpar campos semanais
   const handleResetSemanal = () => {
-    const key = selectedCloser.trim() || 'default';
     setSemanalData((prev) => ({
       ...prev,
-      [key]: { ...INITIAL_SEMANAL_STATE }
+      [storageKey]: { ...INITIAL_SEMANAL_STATE }
     }));
     setError(null);
   };
@@ -342,7 +424,7 @@ export default function FACloserHub() {
   // 1. PDF DIÁRIO
   const generateDailyPDF = async () => {
     if (!selectedCloser.trim()) {
-      setError('Por favor, informe o nome do closer.');
+      setError('Por favor, selecione um Closer.');
       return;
     }
 
@@ -351,8 +433,7 @@ export default function FACloserHub() {
       return;
     }
 
-    const key = selectedCloser.trim();
-    const d = closersData[key] || INITIAL_CLOSER_STATE;
+    const d = closersData[storageKey] || INITIAL_CLOSER_STATE;
 
     if (
       d.orcamentosNovos === '' &&
@@ -365,7 +446,7 @@ export default function FACloserHub() {
       d.valorContratoBase === '' &&
       d.cashColetadoBase === ''
     ) {
-      setError(`Preencha pelo menos um campo para gerar o relatório de ${selectedCloser.trim()}.`);
+      setError(`Preencha pelo menos um campo para gerar o relatório diário de ${selectedCloser}.`);
       return;
     }
 
@@ -538,7 +619,7 @@ export default function FACloserHub() {
       const cleanCloserName = closerDisplay.toLowerCase().replace(/[^a-z0-9]/gi, '_');
       const cleanClientName = clientName.trim() ? `_${clientName.trim().toLowerCase().replace(/[^a-z0-9]/gi, '_')}` : '';
       const periodoStr = getPdfSafePeriodString();
-      doc.save(`Relatorio_Closer_${cleanCloserName}${cleanClientName}_${periodoStr}.pdf`);
+      doc.save(`Relatorio_Diario_${cleanCloserName}${cleanClientName}_${periodoStr}.pdf`);
 
       setPdfGenerated(true);
     } catch (err) {
@@ -859,7 +940,7 @@ export default function FACloserHub() {
         <div className="flex items-center gap-2.5">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#141824] border border-[#222738] text-xs">
             <span className="text-[#64748B] font-mono text-[10px] uppercase">Closer:</span>
-            <span className="text-white font-bold">{selectedCloser.trim() || 'Closer'}</span>
+            <span className="text-white font-bold">{selectedCloser || 'Não selecionado'}</span>
           </div>
           <span className="text-[10px] text-[#C6F500] font-mono bg-[#C6F500]/10 px-2.5 py-1 rounded-lg border border-[#C6F500]/25 font-bold">
             {activeTab === 'diario' ? 'Visão Diária' : `Semana ${selectedWeekNumber}`}
@@ -871,7 +952,7 @@ export default function FACloserHub() {
           2. CONTAINER PRINCIPAL (LAYOUT INTEGRADO COM SIDEBAR)
           ========================================================================= */}
       <div className="w-full max-w-6xl flex flex-col md:flex-row relative z-10 bg-[#0E1017] border border-[#222736] shadow-[0_25px_70px_rgba(0,0,0,0.85)] rounded-[24px] overflow-hidden min-h-[750px] max-h-[1250px]">
-        {/* Sidebar Institucional com Inputs de Closer e Cliente */}
+        {/* Sidebar Institucional com Menus Suspensos para Closer e Clientes */}
         <aside className="w-full md:w-[290px] bg-[#0A0C12] border-r border-[#1B1F2C] p-6 lg:p-7 flex flex-col shrink-0 flex-none justify-between">
           <div className="space-y-6">
             {/* Logo Oficial Fazendo Acontecer */}
@@ -886,82 +967,161 @@ export default function FACloserHub() {
               </p>
             </div>
 
-            {/* SEÇÃO DE ENTRADA DO CLOSER E DO CLIENTE */}
+            {/* SEÇÃO MENU PRINCIPAL: DROPDOWNS SUSPENSOS DE CLOSER E CLIENTE */}
             <div className="space-y-3">
               <p className="text-[11px] font-bold text-[#64748B] uppercase tracking-widest px-1 flex items-center justify-between">
-                <span>Identificação</span>
+                <span>Menu Principal</span>
                 <span className="text-[9px] font-mono bg-[#161924] text-[#94A3B8] px-1.5 py-0.5 rounded border border-[#232838]">
-                  OPERAÇÃO
+                  CLOSERS
                 </span>
               </p>
 
-              {/* Nome do Closer */}
-              <div className="space-y-1.5">
+              {/* 1. DROPDOWN SUSPENSO: NOME DO CLOSER */}
+              <div className="space-y-1.5" ref={closerDropdownRef}>
                 <label className="text-[10px] font-semibold text-[#7E8B9F] uppercase tracking-wider block px-0.5">
-                  Nome do Closer
+                  NOME DO CLOSER
                 </label>
-                <div className="relative flex items-center">
-                  <User size={14} className="absolute left-3 text-[#64748B] pointer-events-none" />
-                  <input
-                    type="text"
-                    value={selectedCloser}
-                    onChange={(e) => {
-                      setSelectedCloser(e.target.value);
-                      setError(null);
-                      setPdfGenerated(false);
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCloserDropdownOpen(!isCloserDropdownOpen);
+                      setIsClientDropdownOpen(false);
                     }}
-                    placeholder="Digite o nome do closer..."
-                    className="w-full bg-[#0B0D13] border border-[#232838] focus:border-[#C6F500] focus:ring-1 focus:ring-[#C6F500]/40 rounded-lg pl-9 pr-7 py-2.5 text-xs font-semibold text-white placeholder-[#525F74] outline-none transition-all shadow-inner"
-                  />
-                  {selectedCloser && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedCloser('');
-                        setError(null);
-                        setPdfGenerated(false);
-                      }}
-                      className="absolute right-2.5 text-[#525F74] hover:text-white text-xs font-bold px-1 transition-colors cursor-pointer"
-                      title="Limpar campo"
-                    >
-                      ×
-                    </button>
-                  )}
+                    className={`w-full flex items-center justify-between bg-[#0B0D13] rounded-xl px-3.5 py-2.5 text-xs font-semibold text-white transition-all cursor-pointer shadow-inner ${
+                      isCloserDropdownOpen
+                        ? 'border-2 border-[#C6F500] shadow-[0_0_15px_rgba(198,245,0,0.25)]'
+                        : 'border border-[#232838] hover:border-[#384259]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 truncate">
+                      <User size={15} className="text-[#C6F500] shrink-0" />
+                      <span className="truncate">{selectedCloser || 'Selecione o Closer'}</span>
+                    </div>
+                    <ChevronDown
+                      size={14}
+                      className={`text-[#C6F500] transition-transform duration-200 shrink-0 ${
+                        isCloserDropdownOpen ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+
+                  <AnimatePresence>
+                    {isCloserDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute z-50 top-full mt-1.5 left-0 w-full bg-[#0E1119] border border-[#232838] rounded-xl shadow-2xl overflow-hidden py-1"
+                      >
+                        <div className="px-3 py-1.5 text-[11px] text-[#64748B] font-mono font-medium border-b border-[#1A1F2C]">
+                          Selecione o Closer
+                        </div>
+                        <div className="max-h-56 overflow-y-auto custom-scrollbar">
+                          {CLOSERS_LIST.map((closer) => {
+                            const isSelected = selectedCloser === closer;
+                            return (
+                              <button
+                                key={closer}
+                                type="button"
+                                onClick={() => handleSelectCloser(closer)}
+                                className={`w-full text-left px-3.5 py-2.5 text-xs font-medium transition-colors flex items-center justify-between cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-[#2563EB] text-white font-bold'
+                                    : 'text-[#E2E8F0] hover:bg-[#181D2B] hover:text-white'
+                                }`}
+                              >
+                                <span>{closer}</span>
+                                {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
 
-              {/* Nome do Cliente */}
-              <div className="space-y-1.5">
+              {/* 2. DROPDOWN SUSPENSO: CLIENTE / OPERAÇÃO (LIBERADO APÓS SELECIONAR CLOSER) */}
+              <div className="space-y-1.5" ref={clientDropdownRef}>
                 <label className="text-[10px] font-semibold text-[#7E8B9F] uppercase tracking-wider block px-0.5">
-                  Nome do Cliente
+                  CLIENTE / OPERAÇÃO
                 </label>
-                <div className="relative flex items-center">
-                  <Building2 size={14} className="absolute left-3 text-[#64748B] pointer-events-none" />
-                  <input
-                    type="text"
-                    value={clientName}
-                    onChange={(e) => {
-                      setClientName(e.target.value);
-                      setError(null);
-                      setPdfGenerated(false);
+                <div className="relative">
+                  <button
+                    type="button"
+                    disabled={!selectedCloser}
+                    onClick={() => {
+                      if (selectedCloser) {
+                        setIsClientDropdownOpen(!isClientDropdownOpen);
+                        setIsCloserDropdownOpen(false);
+                      }
                     }}
-                    placeholder="Digite o nome do cliente..."
-                    className="w-full bg-[#0B0D13] border border-[#232838] focus:border-[#C6F500] focus:ring-1 focus:ring-[#C6F500]/40 rounded-lg pl-9 pr-7 py-2.5 text-xs font-semibold text-white placeholder-[#525F74] outline-none transition-all shadow-inner"
-                  />
-                  {clientName && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setClientName('');
-                        setError(null);
-                        setPdfGenerated(false);
-                      }}
-                      className="absolute right-2.5 text-[#525F74] hover:text-white text-xs font-bold px-1 transition-colors cursor-pointer"
-                      title="Limpar campo"
-                    >
-                      ×
-                    </button>
-                  )}
+                    className={`w-full flex items-center justify-between bg-[#0B0D13] rounded-xl px-3.5 py-2.5 text-xs font-semibold text-white transition-all shadow-inner ${
+                      !selectedCloser
+                        ? 'opacity-50 cursor-not-allowed border border-[#1A1F2C]'
+                        : isClientDropdownOpen
+                        ? 'border-2 border-[#C6F500] shadow-[0_0_15px_rgba(198,245,0,0.25)] cursor-pointer'
+                        : 'border border-[#232838] hover:border-[#384259] cursor-pointer'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 truncate">
+                      <Building2 size={15} className="text-[#C6F500] shrink-0" />
+                      <span className="truncate">
+                        {clientName || (selectedCloser ? 'Selecione o Cliente / Operação' : 'Selecione o Closer primeiro')}
+                      </span>
+                    </div>
+                    <ChevronDown
+                      size={14}
+                      className={`text-[#C6F500] transition-transform duration-200 shrink-0 ${
+                        isClientDropdownOpen ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+
+                  <AnimatePresence>
+                    {isClientDropdownOpen && selectedCloser && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute z-50 top-full mt-1.5 left-0 w-full bg-[#0E1119] border border-[#232838] rounded-xl shadow-2xl overflow-hidden py-1"
+                      >
+                        <div className="px-3 py-1.5 text-[11px] text-[#64748B] font-mono font-medium border-b border-[#1A1F2C]">
+                          Selecione o Cliente / Operação
+                        </div>
+                        <div className="max-h-60 overflow-y-auto custom-scrollbar">
+                          {availableClients.length === 0 ? (
+                            <div className="px-3.5 py-3 text-xs text-[#64748B] italic">
+                              Nenhum cliente cadastrado para este closer.
+                            </div>
+                          ) : (
+                            availableClients.map((client) => {
+                              const isSelected = clientName === client;
+                              return (
+                                <button
+                                  key={client}
+                                  type="button"
+                                  onClick={() => handleSelectClient(client)}
+                                  className={`w-full text-left px-3.5 py-2.5 text-xs font-medium transition-colors flex items-center justify-between cursor-pointer ${
+                                    isSelected
+                                      ? 'bg-[#2563EB] text-white font-bold'
+                                      : 'text-[#E2E8F0] hover:bg-[#181D2B] hover:text-white'
+                                  }`}
+                                >
+                                  <span className="truncate pr-2">{client}</span>
+                                  {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />}
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
             </div>
@@ -978,8 +1138,8 @@ export default function FACloserHub() {
 
               <div className="pl-4 pt-1">
                 <div className="w-full px-3.5 py-2.5 rounded-lg bg-[#161924] border border-[#232838] text-white text-xs font-semibold flex items-center justify-between">
-                  <span>Visão • {selectedCloser.trim() || 'Closer'}</span>
-                  <span className="w-2 h-2 rounded-full bg-[#C6F500] shadow-[0_0_8px_#C6F500]"></span>
+                  <span className="truncate">Visão • {selectedCloser || 'Closer'}</span>
+                  <span className="w-2 h-2 rounded-full bg-[#C6F500] shadow-[0_0_8px_#C6F500] shrink-0"></span>
                 </div>
               </div>
             </div>
@@ -987,10 +1147,10 @@ export default function FACloserHub() {
             {/* Resumo Rápido na Sidebar */}
             <div className="p-4 rounded-xl bg-[#121520] border border-[#202535] space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] text-[#7E8B9F] uppercase tracking-wider font-semibold">
-                  {activeTab === 'diario' ? `Diário • ${selectedCloser.trim() || 'Closer'}` : `Semanal • ${selectedCloser.trim() || 'Closer'}`}
+                <span className="text-[11px] text-[#7E8B9F] uppercase tracking-wider font-semibold truncate pr-2">
+                  {activeTab === 'diario' ? `Diário • ${selectedCloser}` : `Semanal • ${selectedCloser}`}
                 </span>
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#C6F500] bg-[#C6F500]/10 px-2 py-0.5 rounded-full border border-[#C6F500]/25">
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#C6F500] bg-[#C6F500]/10 px-2 py-0.5 rounded-full border border-[#C6F500]/25 shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#C6F500] animate-pulse"></span>
                   Ativo
                 </span>
@@ -1040,7 +1200,7 @@ export default function FACloserHub() {
             </div>
           </div>
 
-          {/* User Session Info */}
+          {/* Informações da Sessão */}
           <div className="pt-5 border-t border-[#1B1F2C] flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#141824] border border-[#222738] flex items-center justify-center text-[#C6F500]">
               <UserCheck size={16} />
@@ -1071,7 +1231,7 @@ export default function FACloserHub() {
                 <div>
                   <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                     <span className="px-2.5 py-0.5 rounded-md bg-[#C6F500]/10 border border-[#C6F500]/25 text-[#C6F500] text-[11px] font-mono font-bold tracking-wide">
-                      Closer: {selectedCloser.trim() || 'Closer'}
+                      Closer: {selectedCloser || 'Não selecionado'}
                     </span>
                     {clientName.trim() && (
                       <span className="px-2.5 py-0.5 rounded-md bg-[#161924] border border-[#232838] text-white text-[11px] font-mono font-semibold tracking-wide flex items-center gap-1.5">
@@ -1453,7 +1613,7 @@ export default function FACloserHub() {
                 <div>
                   <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                     <span className="px-2.5 py-0.5 rounded-md bg-[#C6F500]/10 border border-[#C6F500]/25 text-[#C6F500] text-[11px] font-mono font-bold tracking-wide">
-                      Closer: {selectedCloser.trim() || 'Geral'}
+                      Closer: {selectedCloser || 'Geral'}
                     </span>
                     {clientName.trim() && (
                       <span className="px-2.5 py-0.5 rounded-md bg-[#161924] border border-[#232838] text-white text-[11px] font-mono font-semibold tracking-wide flex items-center gap-1.5">
