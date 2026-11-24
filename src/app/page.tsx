@@ -920,25 +920,15 @@ export default function FACloserHub() {
           >
             <CalendarRange size={13} strokeWidth={1.75} className={activeTab === 'semanal' ? 'text-black' : 'text-[#64748B]'} />
             <span>Semanal</span>
-            <span
-              className={`text-[9px] px-1.5 py-0.2 rounded font-semibold ${
-                activeTab === 'semanal' ? 'bg-black text-[#CCFF00]' : 'bg-[#CCFF00]/10 text-[#CCFF00]'
-              }`}
-            >
-              NOVO
-            </span>
           </button>
         </div>
 
         {/* Informação Direita */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-[8px] bg-[#141824] border border-[#212739] text-xs">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-[#141824] border border-[#212739] text-xs">
             <span className="text-[#64748B] text-[10px] uppercase font-semibold">Closer:</span>
             <span className="text-[#F5F5F7] font-semibold">{selectedCloser || 'Não selecionado'}</span>
           </div>
-          <span className="text-[10px] text-[#CCFF00] bg-[#CCFF00]/10 px-2.5 py-1 rounded-[8px] border border-[#CCFF00]/25 font-semibold">
-            {activeTab === 'diario' ? 'Visão Diária' : `Semana ${selectedWeekNumber}`}
-          </span>
         </div>
       </header>
 
@@ -1629,9 +1619,6 @@ export default function FACloserHub() {
                         Cliente: <span className="text-[#F5F5F7] font-semibold">{clientName.trim()}</span>
                       </span>
                     )}
-                    <span className="px-2.5 py-0.5 rounded-full bg-[#141824] border border-[#212739] text-[#94A0B2] text-[10px] font-medium [font-variant-numeric:lining-nums_tabular-nums]">
-                      Semana {selectedWeekNumber}
-                    </span>
                   </div>
                   <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#F5F5F7]">
                     Relatório Comercial — Orçamentos
