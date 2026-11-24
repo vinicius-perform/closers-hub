@@ -371,6 +371,36 @@ export default function FACloserHub() {
     handleSemanalChange(field, formatted);
   };
 
+  // Preencher Exemplo no Painel Diário
+  const handleLoadDailySample = () => {
+    setClosersData((prev) => ({
+      ...prev,
+      [storageKey]: {
+        orcamentosNovos: '5',
+        vendasNovos: '2',
+        valorContratoNovos: formatCurrency(18500),
+        cashColetadoNovos: formatCurrency(12000),
+        followRealizados: '14',
+        vendasBase: '3',
+        valorContratoBase: formatCurrency(24000),
+        cashColetadoBase: formatCurrency(15500),
+        valorNegociacaoBase: formatCurrency(35000)
+      }
+    }));
+    setError(null);
+    setPdfGenerated(false);
+  };
+
+  // Limpar campos diários
+  const handleResetDaily = () => {
+    setClosersData((prev) => ({
+      ...prev,
+      [storageKey]: { ...INITIAL_CLOSER_STATE }
+    }));
+    setError(null);
+    setPdfGenerated(false);
+  };
+
   // Preencher Exemplo no Painel Semanal
   const handleLoadSemanalSample = () => {
     setSemanalData((prev) => ({
@@ -455,22 +485,20 @@ export default function FACloserHub() {
     setError(null);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
-      const MARGIN = 15;
+      const MARGIN = 14;
       const PAGE_WIDTH = 210;
-      const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
-      const doc = new jsPDF();
-      let currentY = MARGIN;
+      const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2; // 182mm
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-      const drawDivider = (y: number) => {
-        doc.setDrawColor(225, 230, 240);
-        doc.setLineWidth(0.3);
-        doc.line(MARGIN, y, MARGIN + CONTENT_WIDTH, y);
-      };
+      // 1. Background Total Escuro (Obsidian)
+      doc.setFillColor(11, 13, 18); // #0B0D12
+      doc.rect(0, 0, 210, 297, 'F');
 
-      // Header com Logo
-      let headerOffset = 18;
+      let currentY = 12;
+
+      // 2. Header Superior com Logo e Metadados
       try {
         const img = new Image();
         img.src = '/logo.png';
@@ -481,143 +509,334 @@ export default function FACloserHub() {
             img.onerror = () => resolve(null);
           }
         });
-        doc.setFillColor(11, 13, 19);
-        doc.roundedRect(MARGIN, currentY, 48, 12, 2, 2, 'F');
-        doc.addImage(img, 'PNG', MARGIN + 2, currentY + 2, 44, 8);
-        headerOffset = 54;
+        doc.addImage(img, 'PNG', MARGIN, currentY, 44, 9);
       } catch {
         doc.setFillColor(204, 255, 0);
-        doc.roundedRect(MARGIN, currentY, 12, 12, 2.5, 2.5, 'F');
+        doc.roundedRect(MARGIN, currentY, 10, 10, 2, 2, 'F');
         doc.setTextColor(0, 0, 0);
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'bold');
-        doc.text('FA', MARGIN + 3.2, currentY + 8);
-      }
-
-      doc.setTextColor(11, 13, 19);
-      doc.setFontSize(13);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`RELATÓRIO DIÁRIO DE CLOSER`, MARGIN + headerOffset, currentY + 8.5);
-
-      doc.setFontSize(8);
-      doc.setTextColor(110, 122, 145);
-      doc.setFont('helvetica', 'normal');
-      doc.text('INTELIGÊNCIA COMERCIAL', MARGIN + CONTENT_WIDTH - 38, currentY + 8.5);
-
-      currentY += 16;
-      drawDivider(currentY);
-      currentY += 10;
-
-      // Informações Gerais
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(90, 105, 130);
-      doc.text('INFORMAÇÕES GERAIS', MARGIN, currentY);
-      currentY += 8;
-
-      const drawInfoItem = (label: string, value: string, x: number, y: number) => {
         doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(120, 135, 155);
-        doc.text(label, x, y);
-        doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(15, 20, 30);
-        doc.text(value, x, y + 5.5);
-      };
-
-      if (clientName.trim()) {
-        const colWidth3 = CONTENT_WIDTH / 3;
-        drawInfoItem('Cliente / Operação:', clientName.trim(), MARGIN, currentY);
-        drawInfoItem('Closer Responsável:', selectedCloser.trim() || 'Closer', MARGIN + colWidth3, currentY);
-        drawInfoItem('Período de Análise:', formatPeriod(), MARGIN + colWidth3 * 2, currentY);
-      } else {
-        const colWidth = CONTENT_WIDTH / 2;
-        drawInfoItem('Closer Responsável:', selectedCloser.trim() || 'Closer', MARGIN, currentY);
-        drawInfoItem('Período de Análise:', formatPeriod(), MARGIN + colWidth, currentY);
+        doc.text('FA', MARGIN + 2.5, currentY + 6.8);
       }
-      currentY += 16;
 
-      // Cards de Resumo Executivo
-      doc.setFillColor(248, 250, 252);
-      doc.roundedRect(MARGIN, currentY, CONTENT_WIDTH, 20, 2, 2, 'F');
-      doc.setDrawColor(226, 232, 240);
-      doc.roundedRect(MARGIN, currentY, CONTENT_WIDTH, 20, 2, 2, 'S');
+      doc.setFontSize(5.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(100, 116, 139); // #64748B
+      doc.text('HUB CLOSERS • GESTÃO DE PERFORMANCE COMERCIAL', MARGIN, currentY + 12.5);
 
-      const kpiWidth = CONTENT_WIDTH / 4;
-      const drawKpi = (label: string, val: string, x: number) => {
-        doc.setFontSize(7.5);
+      // 4 Colunas de Metadados no Topo Direito
+      const colStartX = MARGIN + 68;
+      const colW = (CONTENT_WIDTH - 68) / 4;
+
+      const drawHeaderCol = (labelLine1: string, labelLine2: string, value: string, xPos: number, isAccent = false) => {
+        doc.setFontSize(5.5);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(100, 116, 139);
-        doc.text(label, x + 4, currentY + 6.5);
+        if (labelLine2) {
+          doc.text(labelLine1, xPos, currentY + 3);
+          doc.text(labelLine2, xPos, currentY + 6);
+        } else {
+          doc.text(labelLine1, xPos, currentY + 5);
+        }
+
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'bold');
+        if (isAccent) {
+          doc.setTextColor(204, 255, 0); // #CCFF00
+        } else {
+          doc.setTextColor(245, 245, 247);
+        }
+        doc.text(value, xPos, currentY + 10.5);
+      };
+
+      drawHeaderCol('CLOSER', 'RESPONSÁVEL', selectedCloser.trim() || 'Closer', colStartX, true);
+      drawHeaderCol('CLIENTE /', 'OPERAÇÃO', clientName.trim() || 'Todas as Operações', colStartX + colW);
+      drawHeaderCol('PERÍODO', 'ANALISADO', formatPeriod(), colStartX + colW * 2);
+      drawHeaderCol('DATA', 'EMISSÃO', format(new Date(), 'dd/MM/yyyy'), colStartX + colW * 3);
+
+      currentY += 16;
+
+      // Linha Divisória Sutil
+      doc.setDrawColor(33, 39, 57);
+      doc.setLineWidth(0.3);
+      doc.line(MARGIN, currentY, MARGIN + CONTENT_WIDTH, currentY);
+
+      currentY += 7;
+
+      // 3. Título e Subtítulo + Badge Oficial
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(245, 245, 247);
+      doc.text('Relatório Diário de Métricas Comerciais', MARGIN, currentY);
+
+      // Badge • RELATÓRIO OFICIAL
+      doc.setFillColor(20, 24, 36);
+      doc.setDrawColor(204, 255, 0);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(MARGIN + CONTENT_WIDTH - 34, currentY - 5.5, 34, 6.5, 3.25, 3.25, 'FD');
+      doc.setFontSize(6);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(204, 255, 0);
+      doc.text('• RELATÓRIO OFICIAL', MARGIN + CONTENT_WIDTH - 30.5, currentY - 1.5);
+
+      currentY += 4.5;
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(148, 160, 178);
+      doc.text('Consolidado diário de prospecção, vendas em novos, trabalho na base e cash coletado.', MARGIN, currentY);
+
+      currentY += 7;
+
+      // 4. Quatro Cards Bento Superiores
+      const kpiGap = 3;
+      const kpiW = (CONTENT_WIDTH - kpiGap * 3) / 4;
+      const kpiH = 22;
+
+      const drawKpiCard = (x: number, label: string, val: string, sub: string, isNeon = false) => {
+        doc.setFillColor(20, 24, 36);
+        doc.setDrawColor(33, 39, 57);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(x, currentY, kpiW, kpiH, 2.5, 2.5, 'FD');
+
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(100, 116, 139);
+        doc.text(label, x + 3.5, currentY + 5.5);
+
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(15, 23, 42);
-        doc.text(val, x + 4, currentY + 14);
+        if (isNeon) {
+          doc.setTextColor(204, 255, 0);
+        } else {
+          doc.setTextColor(245, 245, 247);
+        }
+        doc.text(val, x + 3.5, currentY + 12.5);
+
+        doc.setFontSize(5.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(148, 160, 178);
+        doc.text(sub, x + 3.5, currentY + 17.5);
       };
 
-      drawKpi('TOTAL VENDAS', `${dailySummary.totalVendas} un`, MARGIN);
-      drawKpi('VALOR CONTRATO', formatCurrency(dailySummary.totalContratos), MARGIN + kpiWidth);
-      drawKpi('CASH COLETADO', formatCurrency(dailySummary.totalCashColetado), MARGIN + kpiWidth * 2);
-      drawKpi('EM NEGOCIAÇÃO', formatCurrency(dailySummary.valNegociacao), MARGIN + kpiWidth * 3);
+      drawKpiCard(MARGIN, 'VOLUME DE VENDAS', `${dailySummary.totalVendas} un`, `${dailySummary.vNovos} novos + ${dailySummary.vBase} base`);
+      drawKpiCard(MARGIN + (kpiW + kpiGap), 'VALOR DE CONTRATO', formatCurrency(dailySummary.totalContratos), 'Contratos fechados no dia');
+      drawKpiCard(MARGIN + (kpiW + kpiGap) * 2, 'CASH COLETADO', formatCurrency(dailySummary.totalCashColetado), 'Receita capturada à vista', true);
+      drawKpiCard(MARGIN + (kpiW + kpiGap) * 3, 'TAXA DE CONVERSÃO', `${dailySummary.conversaoGeral.toFixed(1)}%`, 'Eficiência comercial do dia');
 
-      currentY += 28;
+      currentY += kpiH + 5;
 
-      // Tabela de Detalhamento
-      const renderSectionTable = (title: string, rows: [string, string][]) => {
-        doc.setFillColor(241, 245, 249);
-        doc.rect(MARGIN, currentY, CONTENT_WIDTH, 7, 'F');
-        doc.setFontSize(8.5);
+      // 5. Dois Grandes Cards de Detalhamento Diário (Novos vs Base)
+      const detailGap = 4;
+      const detailW = (CONTENT_WIDTH - detailGap) / 2;
+      const detailH = 46;
+
+      // Card 1: Orçamentos Novos no Dia
+      doc.setFillColor(20, 24, 36);
+      doc.setDrawColor(33, 39, 57);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(MARGIN, currentY, detailW, detailH, 2.5, 2.5, 'FD');
+
+      // Linha de acento verde
+      doc.setDrawColor(34, 197, 94);
+      doc.setLineWidth(1.2);
+      doc.line(MARGIN + 3, currentY + 0.6, MARGIN + detailW - 3, currentY + 0.6);
+
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(245, 245, 247);
+      doc.text('1. ORÇAMENTOS NOVOS NO DIA', MARGIN + 4, currentY + 7);
+
+      // Pill de conversão
+      doc.setFillColor(34, 197, 94);
+      doc.roundedRect(MARGIN + detailW - 20, currentY + 4, 16, 4.5, 2, 2, 'F');
+      doc.setFontSize(6);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text(`${dailySummary.taxaConversaoNovos.toFixed(1)}% conv`, MARGIN + detailW - 18.5, currentY + 7.2);
+
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text(formatCurrency(dailySummary.valContratoNovos), MARGIN + 4, currentY + 16.5);
+
+      const drawDetailRow = (cardX: number, w: number, label: string, val: string, yPos: number, isHighlight = false) => {
+        doc.setFontSize(6.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(148, 160, 178);
+        doc.text(label, cardX + 4, yPos);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(30, 41, 59);
-        doc.text(title.toUpperCase(), MARGIN + 4, currentY + 5);
-        currentY += 7;
-
-        rows.forEach(([label, value], i) => {
-          if (i % 2 === 1) {
-            doc.setFillColor(250, 250, 250);
-            doc.rect(MARGIN, currentY, CONTENT_WIDTH, 6.5, 'F');
-          }
-          doc.setFontSize(8.5);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(71, 85, 105);
-          doc.text(label, MARGIN + 4, currentY + 4.8);
-
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(15, 23, 42);
-          doc.text(value, MARGIN + CONTENT_WIDTH - 4, currentY + 4.8, { align: 'right' });
-          currentY += 6.5;
-        });
-
-        currentY += 4;
+        if (isHighlight) {
+          doc.setTextColor(204, 255, 0);
+        } else {
+          doc.setTextColor(245, 245, 247);
+        }
+        doc.text(val, cardX + w - 4, yPos, { align: 'right' });
       };
 
-      renderSectionTable('1. Orçamentos Novos no Dia', [
-        ['Quantos Orçamentos:', `${dailySummary.orcNovos} un`],
-        ['Quantas Vendas:', `${dailySummary.vNovos} un`],
-        ['Valor de Contrato:', formatCurrency(dailySummary.valContratoNovos)],
-        ['Cash Coletado:', formatCurrency(dailySummary.cashNovos)],
-        ['Taxa de Conversão em Novos:', `${dailySummary.taxaConversaoNovos.toFixed(1)}%`]
-      ]);
+      drawDetailRow(MARGIN, detailW, 'Quantos Orçamentos Novos:', `${dailySummary.orcNovos} un`, currentY + 23.5);
+      drawDetailRow(MARGIN, detailW, 'Quantas Vendas em Novos:', `${dailySummary.vNovos} un`, currentY + 29.5);
+      drawDetailRow(MARGIN, detailW, 'Cash Coletado em Novos:', formatCurrency(dailySummary.cashNovos), currentY + 35.5, true);
+      drawDetailRow(MARGIN, detailW, 'Ticket Médio Novos:', formatCurrency(dailySummary.vNovos > 0 ? dailySummary.valContratoNovos / dailySummary.vNovos : 0), currentY + 41.5);
 
-      renderSectionTable('2. Trabalho na Base', [
-        ['Quantos Follow Realizados:', `${dailySummary.fRealizados} un`],
-        ['Valor em Negociação:', formatCurrency(dailySummary.valNegociacao)],
-        ['Quantas Vendas Recuperadas:', `${dailySummary.vBase} un`],
-        ['Valor de Contrato:', formatCurrency(dailySummary.valContratoBase)],
-        ['Cash Coletado na Base:', formatCurrency(dailySummary.cashBase)],
-        ['Taxa de Conversão na Base:', `${dailySummary.taxaConversaoBase.toFixed(1)}%`]
-      ]);
+      // Card 2: Trabalho na Base
+      const card2X = MARGIN + detailW + detailGap;
+      doc.setFillColor(20, 24, 36);
+      doc.setDrawColor(33, 39, 57);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(card2X, currentY, detailW, detailH, 2.5, 2.5, 'FD');
 
-      // Rodapé
-      doc.setFontSize(7);
-      doc.setTextColor(150, 160, 175);
-      const closerDisplay = selectedCloser.trim() || 'Closer';
-      const clientPart = clientName.trim() ? ` | Cliente: ${clientName.trim()}` : '';
-      const footerText = `FA Closer Hub | Closer: ${closerDisplay}${clientPart} | Emitido em ${format(new Date(), 'dd/MM/yyyy HH:mm')} | Confidencial`;
-      doc.text(footerText, MARGIN, 285);
+      // Linha de acento azul
+      doc.setDrawColor(59, 130, 246);
+      doc.setLineWidth(1.2);
+      doc.line(card2X + 3, currentY + 0.6, card2X + detailW - 3, currentY + 0.6);
 
-      const cleanCloserName = closerDisplay.toLowerCase().replace(/[^a-z0-9]/gi, '_');
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(245, 245, 247);
+      doc.text('2. TRABALHO NA BASE DO DIA', card2X + 4, currentY + 7);
+
+      // Pill de conversão base
+      doc.setFillColor(59, 130, 246);
+      doc.roundedRect(card2X + detailW - 20, currentY + 4, 16, 4.5, 2, 2, 'F');
+      doc.setFontSize(6);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text(`${dailySummary.taxaConversaoBase.toFixed(1)}% conv`, card2X + detailW - 18.5, currentY + 7.2);
+
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text(formatCurrency(dailySummary.valContratoBase), card2X + 4, currentY + 16.5);
+
+      drawDetailRow(card2X, detailW, 'Follow-ups Realizados:', `${dailySummary.fRealizados} un`, currentY + 23.5);
+      drawDetailRow(card2X, detailW, 'Vendas Recuperadas:', `${dailySummary.vBase} un`, currentY + 29.5);
+      drawDetailRow(card2X, detailW, 'Cash Coletado na Base:', formatCurrency(dailySummary.cashBase), currentY + 35.5, true);
+      drawDetailRow(card2X, detailW, 'Valor em Negociação Ativa:', formatCurrency(dailySummary.valNegociacao), currentY + 41.5);
+
+      currentY += detailH + 5;
+
+      // 6. Barra de Distribuição de Contratos & Volume
+      doc.setFillColor(20, 24, 36);
+      doc.setDrawColor(33, 39, 57);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(MARGIN, currentY, CONTENT_WIDTH, 19, 2.5, 2.5, 'FD');
+
+      doc.setFontSize(6);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(100, 116, 139);
+      doc.text('COMPOSIÇÃO PROPORCIONAL DO RESULTADO DIÁRIO', MARGIN + 4, currentY + 5);
+      doc.text('DISTRIBUIÇÃO DE CONTRATOS & VOLUME', MARGIN + CONTENT_WIDTH - 4, currentY + 5, { align: 'right' });
+
+      // Barra de progresso multi-segmentada
+      const barX = MARGIN + 4;
+      const barY = currentY + 7.5;
+      const barW = CONTENT_WIDTH - 8;
+      const barH = 3.5;
+
+      const totalValDiario = (dailySummary.valContratoNovos + dailySummary.valContratoBase + dailySummary.valNegociacao) || 1;
+      const wNovos = Math.max((dailySummary.valContratoNovos / totalValDiario) * barW, dailySummary.valContratoNovos > 0 ? 3 : 0);
+      const wBase = Math.max((dailySummary.valContratoBase / totalValDiario) * barW, dailySummary.valContratoBase > 0 ? 3 : 0);
+      const wNegoc = Math.max(barW - wNovos - wBase, 0);
+
+      // Segmento Novos (Verde)
+      doc.setFillColor(34, 197, 94);
+      doc.roundedRect(barX, barY, Math.max(wNovos, 2), barH, 1.5, 1.5, 'F');
+      // Segmento Base (Azul)
+      if (wBase > 0) {
+        doc.setFillColor(59, 130, 246);
+        doc.rect(barX + wNovos, barY, wBase, barH, 'F');
+      }
+      // Segmento Negociação (Laranja/Amarelo)
+      if (wNegoc > 0) {
+        doc.setFillColor(234, 179, 8);
+        doc.roundedRect(barX + wNovos + wBase, barY, wNegoc, barH, 1.5, 1.5, 'F');
+      }
+
+      // Legendas
+      const legY = currentY + 15;
+      doc.setFontSize(6);
+
+      doc.setFillColor(34, 197, 94);
+      doc.circle(MARGIN + 5, legY - 1, 1, 'F');
+      doc.setTextColor(245, 245, 247);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Novos: ${dailySummary.vNovos} vendas • ${formatCurrency(dailySummary.valContratoNovos)}`, MARGIN + 7.5, legY);
+
+      const leg2X = MARGIN + 68;
+      doc.setFillColor(59, 130, 246);
+      doc.circle(leg2X, legY - 1, 1, 'F');
+      doc.text(`Base: ${dailySummary.vBase} vendas • ${formatCurrency(dailySummary.valContratoBase)}`, leg2X + 2.5, legY);
+
+      const leg3X = MARGIN + 130;
+      doc.setFillColor(234, 179, 8);
+      doc.circle(leg3X, legY - 1, 1, 'F');
+      doc.text(`Em Negociação: ${formatCurrency(dailySummary.valNegociacao)}`, leg3X + 2.5, legY);
+
+      currentY += 23;
+
+      // 7. Diagnóstico Comercial & Próximas Ações Estratégicas
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(204, 255, 0);
+      doc.text('DIAGNÓSTICO COMERCIAL & PRÓXIMAS AÇÕES ESTRATÉGICAS', MARGIN, currentY);
+
+      currentY += 3.5;
+
+      const actionGap = 3;
+      const actionW = (CONTENT_WIDTH - actionGap * 2) / 3;
+      const actionH = 22;
+
+      const drawActionCard = (x: number, title: string, text: string, titleColor: [number, number, number]) => {
+        doc.setFillColor(20, 24, 36);
+        doc.setDrawColor(33, 39, 57);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(x, currentY, actionW, actionH, 2, 2, 'FD');
+
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(titleColor[0], titleColor[1], titleColor[2]);
+        doc.text(title, x + 3.5, currentY + 5);
+
+        doc.setFontSize(5.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(148, 160, 178);
+        const splitLines = doc.splitTextToSize(text, actionW - 7);
+        doc.text(splitLines, x + 3.5, currentY + 9.5);
+      };
+
+      drawActionCard(
+        MARGIN,
+        '01 • FOCO EM NOVOS',
+        `Priorizar cadência nos ${dailySummary.orcNovos} novos orçamentos para converter com ciclo ágil.`,
+        [204, 255, 0]
+      );
+
+      drawActionCard(
+        MARGIN + actionW + actionGap,
+        '02 • RECUPERAÇÃO NA BASE',
+        `Avançar nos ${dailySummary.fRealizados} follow-ups da base e fechar os ${formatCurrency(dailySummary.valNegociacao)} em negociação.`,
+        [59, 130, 246]
+      );
+
+      drawActionCard(
+        MARGIN + (actionW + actionGap) * 2,
+        '03 • CAPTURA DE CASH',
+        `Assegurar entrada e cash coletado (hoje: ${formatCurrency(dailySummary.totalCashColetado)} de ${formatCurrency(dailySummary.totalContratos)} contratados).`,
+        [34, 197, 94]
+      );
+
+      // 8. Rodapé Fixo
+      doc.setDrawColor(33, 39, 57);
+      doc.setLineWidth(0.3);
+      doc.line(MARGIN, 283, MARGIN + CONTENT_WIDTH, 283);
+
+      doc.setFontSize(6);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.text('FAZENDO ACONTECER™ • Hub Closers — Gestão Comercial de Alta Performance', MARGIN, 288);
+      doc.text('Documento Confidencial • Uso Interno da Operação', MARGIN + CONTENT_WIDTH, 288, { align: 'right' });
+
+      const cleanCloserName = selectedCloser.toLowerCase().replace(/[^a-z0-9]/gi, '_');
       const cleanClientName = clientName.trim() ? `_${clientName.trim().toLowerCase().replace(/[^a-z0-9]/gi, '_')}` : '';
       const periodoStr = getPdfSafePeriodString();
       doc.save(`Relatorio_Diario_${cleanCloserName}${cleanClientName}_${periodoStr}.pdf`);
@@ -649,22 +868,20 @@ export default function FACloserHub() {
     setError(null);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
-      const MARGIN = 15;
+      const MARGIN = 14;
       const PAGE_WIDTH = 210;
-      const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
-      const doc = new jsPDF();
-      let currentY = MARGIN;
+      const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2; // 182mm
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-      const drawDivider = (y: number) => {
-        doc.setDrawColor(225, 230, 240);
-        doc.setLineWidth(0.3);
-        doc.line(MARGIN, y, MARGIN + CONTENT_WIDTH, y);
-      };
+      // 1. Background Total Escuro (Obsidian)
+      doc.setFillColor(11, 13, 18); // #0B0D12
+      doc.rect(0, 0, 210, 297, 'F');
 
-      // Header com Logo
-      let headerOffset = 18;
+      let currentY = 12;
+
+      // 2. Header Superior com Logo e Metadados
       try {
         const img = new Image();
         img.src = '/logo.png';
@@ -675,194 +892,346 @@ export default function FACloserHub() {
             img.onerror = () => resolve(null);
           }
         });
-        doc.setFillColor(11, 13, 19);
-        doc.roundedRect(MARGIN, currentY, 48, 12, 2, 2, 'F');
-        doc.addImage(img, 'PNG', MARGIN + 2, currentY + 2, 44, 8);
-        headerOffset = 54;
+        doc.addImage(img, 'PNG', MARGIN, currentY, 44, 9);
       } catch {
         doc.setFillColor(204, 255, 0);
-        doc.roundedRect(MARGIN, currentY, 12, 12, 2.5, 2.5, 'F');
+        doc.roundedRect(MARGIN, currentY, 10, 10, 2, 2, 'F');
         doc.setTextColor(0, 0, 0);
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'bold');
-        doc.text('FA', MARGIN + 3.2, currentY + 8);
-      }
-
-      doc.setTextColor(11, 13, 19);
-      doc.setFontSize(13);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`RELATÓRIO COMERCIAL SEMANAL — ORÇAMENTOS`, MARGIN + headerOffset, currentY + 8.5);
-
-      doc.setFontSize(8);
-      doc.setTextColor(110, 122, 145);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`SEMANA ${selectedWeekNumber}`, MARGIN + CONTENT_WIDTH - 25, currentY + 8.5);
-
-      currentY += 16;
-      drawDivider(currentY);
-      currentY += 10;
-
-      // Informações Gerais
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(90, 105, 130);
-      doc.text('INFORMAÇÕES DA OPERAÇÃO', MARGIN, currentY);
-      currentY += 8;
-
-      const drawInfoItem = (label: string, value: string, x: number, y: number) => {
         doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(120, 135, 155);
-        doc.text(label, x, y);
-        doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(15, 20, 30);
-        doc.text(value, x, y + 5.5);
-      };
-
-      if (clientName.trim()) {
-        const colWidth3 = CONTENT_WIDTH / 3;
-        drawInfoItem('Cliente / Operação:', clientName.trim(), MARGIN, currentY);
-        drawInfoItem('Closer Responsável:', selectedCloser.trim() || 'Geral', MARGIN + colWidth3, currentY);
-        drawInfoItem('Semana de Referência:', `Semana ${selectedWeekNumber}`, MARGIN + colWidth3 * 2, currentY);
-      } else {
-        const colWidth = CONTENT_WIDTH / 2;
-        drawInfoItem('Closer Responsável:', selectedCloser.trim() || 'Geral', MARGIN, currentY);
-        drawInfoItem('Semana de Referência:', `Semana ${selectedWeekNumber} • Gestão de Pipeline`, MARGIN + colWidth, currentY);
+        doc.text('FA', MARGIN + 2.5, currentY + 6.8);
       }
-      currentY += 16;
 
-      // 4 KPIs Bento Topo
-      doc.setFillColor(248, 250, 252);
-      doc.roundedRect(MARGIN, currentY, CONTENT_WIDTH, 20, 2, 2, 'F');
-      doc.setDrawColor(226, 232, 240);
-      doc.roundedRect(MARGIN, currentY, CONTENT_WIDTH, 20, 2, 2, 'S');
+      doc.setFontSize(5.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(100, 116, 139); // #64748B
+      doc.text('HUB CLOSERS • GESTÃO DE PERFORMANCE COMERCIAL', MARGIN, currentY + 12.5);
 
-      const kpiWidth = CONTENT_WIDTH / 4;
-      const drawKpi = (label: string, val: string, sub: string, x: number) => {
-        doc.setFontSize(7.5);
+      // 4 Colunas de Metadados no Topo Direito
+      const colStartX = MARGIN + 68;
+      const colW = (CONTENT_WIDTH - 68) / 4;
+
+      const drawHeaderCol = (labelLine1: string, labelLine2: string, value: string, xPos: number, isAccent = false) => {
+        doc.setFontSize(5.5);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(100, 116, 139);
-        doc.text(label, x + 4, currentY + 6);
+        if (labelLine2) {
+          doc.text(labelLine1, xPos, currentY + 3);
+          doc.text(labelLine2, xPos, currentY + 6);
+        } else {
+          doc.text(labelLine1, xPos, currentY + 5);
+        }
+
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'bold');
+        if (isAccent) {
+          doc.setTextColor(204, 255, 0); // #CCFF00
+        } else {
+          doc.setTextColor(245, 245, 247);
+        }
+        doc.text(value, xPos, currentY + 10.5);
+      };
+
+      drawHeaderCol('CLOSER', 'RESPONSÁVEL', selectedCloser.trim() || 'Geral', colStartX, true);
+      drawHeaderCol('CLIENTE /', 'OPERAÇÃO', clientName.trim() || 'Todas as Operações', colStartX + colW);
+      drawHeaderCol('PERÍODO', 'ANALISADO', `Semana ${selectedWeekNumber}`, colStartX + colW * 2);
+      drawHeaderCol('DATA', 'EMISSÃO', format(new Date(), 'dd/MM/yyyy'), colStartX + colW * 3);
+
+      currentY += 16;
+
+      // Linha Divisória Sutil
+      doc.setDrawColor(33, 39, 57);
+      doc.setLineWidth(0.3);
+      doc.line(MARGIN, currentY, MARGIN + CONTENT_WIDTH, currentY);
+
+      currentY += 7;
+
+      // 3. Título e Subtítulo + Badge Oficial
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(245, 245, 247);
+      doc.text('Relatório Semanal de Orçamentos & Pipeline', MARGIN, currentY);
+
+      // Badge • RELATÓRIO OFICIAL
+      doc.setFillColor(20, 24, 36);
+      doc.setDrawColor(204, 255, 0);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(MARGIN + CONTENT_WIDTH - 34, currentY - 5.5, 34, 6.5, 3.25, 3.25, 'FD');
+      doc.setFontSize(6);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(204, 255, 0);
+      doc.text('• RELATÓRIO OFICIAL', MARGIN + CONTENT_WIDTH - 30.5, currentY - 1.5);
+
+      currentY += 4.5;
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(148, 160, 178);
+      doc.text('Consolidado comercial executivo de conversão, volume em negociação e captura de receita.', MARGIN, currentY);
+
+      currentY += 7;
+
+      // 4. Quatro Cards Bento Superiores
+      const kpiGap = 3;
+      const kpiW = (CONTENT_WIDTH - kpiGap * 3) / 4;
+      const kpiH = 22;
+
+      const drawKpiCard = (x: number, label: string, val: string, sub: string, isNeon = false) => {
+        doc.setFillColor(20, 24, 36);
+        doc.setDrawColor(33, 39, 57);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(x, currentY, kpiW, kpiH, 2.5, 2.5, 'FD');
+
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(100, 116, 139);
+        doc.text(label, x + 3.5, currentY + 5.5);
+
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(15, 23, 42);
-        doc.text(val, x + 4, currentY + 12.5);
+        if (isNeon) {
+          doc.setTextColor(204, 255, 0);
+        } else {
+          doc.setTextColor(245, 245, 247);
+        }
+        doc.text(val, x + 3.5, currentY + 12.5);
+
+        doc.setFontSize(5.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(148, 160, 178);
+        doc.text(sub, x + 3.5, currentY + 17.5);
+      };
+
+      drawKpiCard(MARGIN, 'VOLUME TOTAL APRESENTADO', formatCurrency(semanalSummary.volumeTotal), 'Soma de todo o funil na semana');
+      drawKpiCard(MARGIN + (kpiW + kpiGap), 'TOTAL DE ORÇAMENTOS', `${semanalSummary.totalOrcamentos} un`, 'Avaliações comerciais realizadas');
+      drawKpiCard(MARGIN + (kpiW + kpiGap) * 2, 'RECEITA FECHADA', formatCurrency(semanalSummary.valFechado), `${semanalSummary.qtdFechados} contratos convertidos`, true);
+      drawKpiCard(MARGIN + (kpiW + kpiGap) * 3, 'TAXA DE CONVERSÃO', `${semanalSummary.taxaConversao.toFixed(1)}%`, 'Eficiência de fechamento');
+
+      currentY += kpiH + 5;
+
+      // 5. Três Cards Detalhados de Orçamentos (Fechados, Negociação, Perdidos)
+      const cardGap = 3.5;
+      const cardW = (CONTENT_WIDTH - cardGap * 2) / 3;
+      const cardH = 36;
+
+      const pctFechado = semanalSummary.pctQtdFechado.toFixed(1);
+      const pctNegoc = semanalSummary.pctQtdNegociacao.toFixed(1);
+      const pctPerd = semanalSummary.pctQtdPerdido.toFixed(1);
+
+      const drawFunnelCard = (
+        x: number,
+        title: string,
+        pctText: string,
+        accentColor: [number, number, number],
+        val: string,
+        sub1Label: string,
+        sub1Val: string,
+        sub2Label: string,
+        sub2Val: string
+      ) => {
+        doc.setFillColor(20, 24, 36);
+        doc.setDrawColor(33, 39, 57);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(x, currentY, cardW, cardH, 2.5, 2.5, 'FD');
+
+        // Linha de acento colorido superior
+        doc.setDrawColor(accentColor[0], accentColor[1], accentColor[2]);
+        doc.setLineWidth(1.2);
+        doc.line(x + 3, currentY + 0.6, x + cardW - 3, currentY + 0.6);
+
+        // Título
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(245, 245, 247);
+        doc.text(title, x + 4, currentY + 7);
+
+        // Pill de percentual
+        doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
+        doc.roundedRect(x + cardW - 15, currentY + 4, 11, 4.5, 2, 2, 'F');
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(255, 255, 255);
+        doc.text(pctText, x + cardW - 13.5, currentY + 7.2);
+
+        // Valor Principal
+        doc.setFontSize(13);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(255, 255, 255);
+        doc.text(val, x + 4, currentY + 16.5);
+
+        // Linha 1
         doc.setFontSize(6.5);
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(140, 150, 165);
-        doc.text(sub, x + 4, currentY + 17);
-      };
-
-      drawKpi('VOLUME TOTAL', formatCurrency(semanalSummary.volumeTotal), 'no funil', MARGIN);
-      drawKpi('TOTAL ORÇAMENTOS', `${semanalSummary.totalOrcamentos} un`, 'na semana', MARGIN + kpiWidth);
-      drawKpi('FECHADOS', formatCurrency(semanalSummary.valFechado), `${semanalSummary.qtdFechados} convertidos`, MARGIN + kpiWidth * 2);
-      drawKpi('CONVERSÃO', `${semanalSummary.taxaConversao.toFixed(1)}%`, 'eficiência funil', MARGIN + kpiWidth * 3);
-
-      currentY += 28;
-
-      // Tabela dos 3 Blocos de Orçamentos
-      const renderSemanalTable = (title: string, qtd: number, valor: number, ticket: number, subdesc: string) => {
-        doc.setFillColor(241, 245, 249);
-        doc.rect(MARGIN, currentY, CONTENT_WIDTH, 7, 'F');
-        doc.setFontSize(8.5);
+        doc.setTextColor(148, 160, 178);
+        doc.text(sub1Label, x + 4, currentY + 24);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(30, 41, 59);
-        doc.text(title.toUpperCase(), MARGIN + 4, currentY + 5);
+        doc.setTextColor(245, 245, 247);
+        doc.text(sub1Val, x + cardW - 4, currentY + 24, { align: 'right' });
 
-        doc.setFontSize(7.5);
+        // Linha 2
+        doc.setFontSize(6.5);
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(100, 116, 139);
-        doc.text(`Ticket Médio: ${formatCurrency(ticket)}`, MARGIN + CONTENT_WIDTH - 4, currentY + 5, { align: 'right' });
-        currentY += 7;
-
-        const rows: [string, string][] = [
-          ['Status & Descrição:', subdesc],
-          ['Quantidade Registrada:', `${qtd} un`],
-          ['Volume Financeiro Total:', formatCurrency(valor)],
-          ['Proporção do Volume Total:', `${semanalSummary.volumeTotal > 0 ? ((valor / semanalSummary.volumeTotal) * 100).toFixed(1) : '0'}%`]
-        ];
-
-        rows.forEach(([label, value], i) => {
-          if (i % 2 === 1) {
-            doc.setFillColor(250, 250, 250);
-            doc.rect(MARGIN, currentY, CONTENT_WIDTH, 6.5, 'F');
-          }
-          doc.setFontSize(8.5);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(71, 85, 105);
-          doc.text(label, MARGIN + 4, currentY + 4.8);
-
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(15, 23, 42);
-          doc.text(value, MARGIN + CONTENT_WIDTH - 4, currentY + 4.8, { align: 'right' });
-          currentY += 6.5;
-        });
-
-        currentY += 4;
+        doc.setTextColor(148, 160, 178);
+        doc.text(sub2Label, x + 4, currentY + 30);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(245, 245, 247);
+        doc.text(sub2Val, x + cardW - 4, currentY + 30, { align: 'right' });
       };
 
-      renderSemanalTable(
-        '1. Orçamentos Fechados',
-        semanalSummary.qtdFechados,
-        semanalSummary.valFechado,
-        semanalSummary.ticketFechado,
-        'Contratos assinados e receita capturada na semana'
+      drawFunnelCard(
+        MARGIN,
+        'ORÇAMENTOS FECHADOS',
+        `${pctFechado}%`,
+        [34, 197, 94], // #22C55E
+        formatCurrency(semanalSummary.valFechado),
+        'Volume Contratual:',
+        `${semanalSummary.qtdFechados} contratos`,
+        'Ticket Médio Fechado:',
+        formatCurrency(semanalSummary.ticketFechado)
       );
 
-      renderSemanalTable(
-        '2. Em Negociação / Aguardando',
-        semanalSummary.qtdNegociacao,
-        semanalSummary.valNegociacao,
-        semanalSummary.ticketNegociacao,
-        'Propostas ativas com follow-up e decisão pendente'
+      drawFunnelCard(
+        MARGIN + cardW + cardGap,
+        'EM NEGOCIAÇÃO',
+        `${pctNegoc}%`,
+        [59, 130, 246], // #3B82F6
+        formatCurrency(semanalSummary.valNegociacao),
+        'Propostas Ativas:',
+        `${semanalSummary.qtdNegociacao} propostas`,
+        'Ticket Médio Proposta:',
+        formatCurrency(semanalSummary.ticketNegociacao)
       );
 
-      renderSemanalTable(
-        '3. Sem Condições Financeiras (Perdidos)',
-        semanalSummary.qtdPerdidos,
-        semanalSummary.valPerdido,
-        semanalSummary.ticketPerdido,
-        'Sem condições no momento / objeção de investimento não superada'
+      drawFunnelCard(
+        MARGIN + (cardW + cardGap) * 2,
+        'SEM CONDIÇÕES (PERDIDOS)',
+        `${pctPerd}%`,
+        [239, 68, 68], // #EF4444
+        formatCurrency(semanalSummary.valPerdido),
+        'Leads / Pacientes:',
+        `${semanalSummary.qtdPerdidos} pacientes/leads`,
+        'Ticket Médio Perdido:',
+        formatCurrency(semanalSummary.ticketPerdido)
       );
 
-      // Diagnóstico Comercial do Pipeline
-      doc.setFillColor(248, 250, 252);
-      doc.roundedRect(MARGIN, currentY, CONTENT_WIDTH, 26, 2, 2, 'F');
-      doc.setDrawColor(226, 232, 240);
-      doc.roundedRect(MARGIN, currentY, CONTENT_WIDTH, 26, 2, 2, 'S');
+      currentY += cardH + 5;
 
-      doc.setFontSize(8.5);
+      // 6. Barra de Pipeline Proporcional
+      doc.setFillColor(20, 24, 36);
+      doc.setDrawColor(33, 39, 57);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(MARGIN, currentY, CONTENT_WIDTH, 19, 2.5, 2.5, 'FD');
+
+      doc.setFontSize(6);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(30, 41, 59);
-      doc.text('DIAGNÓSTICO COMERCIAL & PIPELINE', MARGIN + 4, currentY + 6);
+      doc.setTextColor(100, 116, 139);
+      doc.text('COMPOSIÇÃO PROPORCIONAL DO PIPELINE', MARGIN + 4, currentY + 5);
+      doc.text('FLUXO SEMANAL', MARGIN + CONTENT_WIDTH - 4, currentY + 5, { align: 'right' });
 
+      const barX = MARGIN + 4;
+      const barY = currentY + 7.5;
+      const barW = CONTENT_WIDTH - 8;
+      const barH = 3.5;
+
+      const totalValSemanal = semanalSummary.volumeTotal || 1;
+      const wFech = Math.max((semanalSummary.valFechado / totalValSemanal) * barW, semanalSummary.valFechado > 0 ? 3 : 0);
+      const wNeg = Math.max((semanalSummary.valNegociacao / totalValSemanal) * barW, semanalSummary.valNegociacao > 0 ? 3 : 0);
+      const wPerd = Math.max(barW - wFech - wNeg, 0);
+
+      doc.setFillColor(34, 197, 94);
+      doc.roundedRect(barX, barY, Math.max(wFech, 2), barH, 1.5, 1.5, 'F');
+      if (wNeg > 0) {
+        doc.setFillColor(59, 130, 246);
+        doc.rect(barX + wFech, barY, wNeg, barH, 'F');
+      }
+      if (wPerd > 0) {
+        doc.setFillColor(239, 68, 68);
+        doc.roundedRect(barX + wFech + wNeg, barY, wPerd, barH, 1.5, 1.5, 'F');
+      }
+
+      const legY = currentY + 15;
+      doc.setFontSize(6);
+
+      doc.setFillColor(34, 197, 94);
+      doc.circle(MARGIN + 5, legY - 1, 1, 'F');
+      doc.setTextColor(245, 245, 247);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Fechados: ${semanalSummary.qtdFechados} (${pctFechado}%) • ${formatCurrency(semanalSummary.valFechado)}`, MARGIN + 7.5, legY);
+
+      const leg2X = MARGIN + 68;
+      doc.setFillColor(59, 130, 246);
+      doc.circle(leg2X, legY - 1, 1, 'F');
+      doc.text(`Em Negociação: ${semanalSummary.qtdNegociacao} (${pctNegoc}%) • ${formatCurrency(semanalSummary.valNegociacao)}`, leg2X + 2.5, legY);
+
+      const leg3X = MARGIN + 130;
+      doc.setFillColor(239, 68, 68);
+      doc.circle(leg3X, legY - 1, 1, 'F');
+      doc.text(`Sem Condições: ${semanalSummary.qtdPerdidos} (${pctPerd}%) • ${formatCurrency(semanalSummary.valPerdido)}`, leg3X + 2.5, legY);
+
+      currentY += 23;
+
+      // 7. Diagnóstico Comercial & Próximas Ações Estratégicas
       doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(204, 255, 0);
+      doc.text('DIAGNÓSTICO COMERCIAL & PRÓXIMAS AÇÕES ESTRATÉGICAS', MARGIN, currentY);
+
+      currentY += 3.5;
+
+      const actionGap = 3;
+      const actionW = (CONTENT_WIDTH - actionGap * 2) / 3;
+      const actionH = 22;
+
+      const drawActionCard = (x: number, title: string, text: string, titleColor: [number, number, number]) => {
+        doc.setFillColor(20, 24, 36);
+        doc.setDrawColor(33, 39, 57);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(x, currentY, actionW, actionH, 2, 2, 'FD');
+
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(titleColor[0], titleColor[1], titleColor[2]);
+        doc.text(title, x + 3.5, currentY + 5);
+
+        doc.setFontSize(5.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(148, 160, 178);
+        const splitLines = doc.splitTextToSize(text, actionW - 7);
+        doc.text(splitLines, x + 3.5, currentY + 9.5);
+      };
+
+      drawActionCard(
+        MARGIN,
+        '01 • PRIORIDADE MÁXIMA',
+        `Converter ${formatCurrency(semanalSummary.valNegociacao)} trabalhando os ${semanalSummary.qtdNegociacao} orçamentos ativos no funil.`,
+        [204, 255, 0]
+      );
+
+      drawActionCard(
+        MARGIN + actionW + actionGap,
+        '02 • RECUPERAÇÃO',
+        `Flexibilizar condições de pagamento para os ${semanalSummary.qtdPerdidos} pacientes sem condições imediatas (${formatCurrency(semanalSummary.valPerdido)}).`,
+        [59, 130, 246]
+      );
+
+      drawActionCard(
+        MARGIN + (actionW + actionGap) * 2,
+        '03 • FECHAMENTO',
+        `Definir cadência individual e data de retorno para cada uma das ${semanalSummary.qtdNegociacao} propostas abertas.`,
+        [34, 197, 94]
+      );
+
+      // 8. Rodapé Fixo
+      doc.setDrawColor(33, 39, 57);
+      doc.setLineWidth(0.3);
+      doc.line(MARGIN, 283, MARGIN + CONTENT_WIDTH, 283);
+
+      doc.setFontSize(6);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(100, 116, 139);
-      doc.text(
-        `Conversão Efetiva: ${semanalSummary.taxaConversao.toFixed(1)}% • Em Aberto: ${semanalSummary.pctQtdNegociacao.toFixed(1)}% • Perdas: ${semanalSummary.pctQtdPerdido.toFixed(1)}%`,
-        MARGIN + 4,
-        currentY + 12
-      );
+      doc.text('FAZENDO ACONTECER™ • Hub Closers — Gestão Comercial de Alta Performance', MARGIN, 288);
+      doc.text('Documento Confidencial • Uso Interno da Operação', MARGIN + CONTENT_WIDTH, 288, { align: 'right' });
 
-      doc.setFontSize(7.5);
-      doc.setTextColor(71, 85, 105);
-      doc.text(
-        `Volume total gerido de ${formatCurrency(semanalSummary.volumeTotal)} com ${semanalSummary.totalOrcamentos} orçamentos registrados no funil.`,
-        MARGIN + 4,
-        currentY + 18
-      );
-
-      // Rodapé
-      doc.setFontSize(7);
-      doc.setTextColor(150, 160, 175);
-      const closerDisplay = selectedCloser.trim() || 'Geral';
-      const clientPart = clientName.trim() ? ` | Cliente: ${clientName.trim()}` : '';
-      const footerText = `FA Closer Hub | Relatório Semanal: Sem. ${selectedWeekNumber} | Closer: ${closerDisplay}${clientPart} | Emitido em ${format(new Date(), 'dd/MM/yyyy HH:mm')} | Confidencial`;
-      doc.text(footerText, MARGIN, 285);
-
-      const cleanCloserName = closerDisplay.toLowerCase().replace(/[^a-z0-9]/gi, '_');
+      const cleanCloserName = selectedCloser.toLowerCase().replace(/[^a-z0-9]/gi, '_');
       doc.save(`Relatorio_Semanal_Semana_${selectedWeekNumber}_${cleanCloserName}.pdf`);
 
       setPdfGenerated(true);
@@ -1237,54 +1606,75 @@ export default function FACloserHub() {
                   </p>
                 </div>
 
-                {/* DATE PICKER */}
-                <div className="relative" ref={calendarRef}>
+                {/* Controles Diários & Date Picker */}
+                <div className="flex items-center gap-2 flex-wrap">
                   <button
-                    onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-                    className={`flex items-center gap-2 bg-[#141824] border rounded-[10px] py-2 px-3.5 text-xs font-semibold transition-all focus:outline-none hover:border-[#323B54] cursor-pointer ${
-                      isCalendarOpen
-                        ? 'border-[#CCFF00] ring-1 ring-[#CCFF00]/30 text-white'
-                        : 'border-[#212739] text-[#F5F5F7]'
-                    }`}
+                    onClick={handleLoadDailySample}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-[10px] bg-[#141824] border border-[#212739] text-xs font-semibold text-[#94A0B2] hover:text-[#F5F5F7] hover:border-[#323B54] transition-all cursor-pointer"
+                    title="Preencher com valores de exemplo para testar"
                   >
-                    <CalendarIcon size={14} strokeWidth={1.75} className="text-[#CCFF00]" />
-                    <span className="[font-variant-numeric:lining-nums_tabular-nums]">{formatPeriod()}</span>
-                    <ChevronDown
-                      size={13}
-                      strokeWidth={1.75}
-                      className={`text-[#94A0B2] transition-transform ${
-                        isCalendarOpen ? 'rotate-180 text-[#CCFF00]' : ''
-                      }`}
-                    />
+                    <Sparkles size={13} strokeWidth={1.75} className="text-[#CCFF00]" />
+                    <span>Exemplo</span>
                   </button>
 
-                  <AnimatePresence>
-                    {isCalendarOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 6, scale: 0.98 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 4, scale: 0.98 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute z-50 top-11 right-0 p-4 bg-[#0F121A] border border-[#212739] rounded-[12px] shadow-2xl"
-                      >
-                        <DayPicker
-                          mode="range"
-                          selected={dateRange}
-                          onSelect={setDateRange}
-                          locale={ptBR}
-                          className="text-[#F5F5F7]"
-                        />
-                        <div className="mt-3 pt-3 border-t border-[#212739] flex justify-end">
-                          <button
-                            onClick={() => setIsCalendarOpen(false)}
-                            className="px-3 py-1.5 rounded-[8px] bg-[#CCFF00] text-black font-bold text-xs hover:bg-[#B8E600] transition-colors cursor-pointer"
-                          >
-                            Confirmar Data
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  <button
+                    onClick={handleResetDaily}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-[10px] bg-[#141824] border border-[#212739] text-xs font-semibold text-[#94A0B2] hover:text-[#F5F5F7] hover:border-[#323B54] transition-all cursor-pointer"
+                    title="Limpar todos os campos do dia"
+                  >
+                    <RotateCcw size={13} strokeWidth={1.75} className="text-[#64748B]" />
+                    <span>Limpar</span>
+                  </button>
+
+                  {/* DATE PICKER */}
+                  <div className="relative" ref={calendarRef}>
+                    <button
+                      onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+                      className={`flex items-center gap-2 bg-[#141824] border rounded-[10px] py-2 px-3.5 text-xs font-semibold transition-all focus:outline-none hover:border-[#323B54] cursor-pointer ${
+                        isCalendarOpen
+                          ? 'border-[#CCFF00] ring-1 ring-[#CCFF00]/30 text-white'
+                          : 'border-[#212739] text-[#F5F5F7]'
+                      }`}
+                    >
+                      <CalendarIcon size={14} strokeWidth={1.75} className="text-[#CCFF00]" />
+                      <span className="[font-variant-numeric:lining-nums_tabular-nums]">{formatPeriod()}</span>
+                      <ChevronDown
+                        size={13}
+                        strokeWidth={1.75}
+                        className={`text-[#94A0B2] transition-transform ${
+                          isCalendarOpen ? 'rotate-180 text-[#CCFF00]' : ''
+                        }`}
+                      />
+                    </button>
+
+                    <AnimatePresence>
+                      {isCalendarOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute z-50 top-11 right-0 p-4 bg-[#0F121A] border border-[#212739] rounded-[12px] shadow-2xl"
+                        >
+                          <DayPicker
+                            mode="range"
+                            selected={dateRange}
+                            onSelect={setDateRange}
+                            locale={ptBR}
+                            className="text-[#F5F5F7]"
+                          />
+                          <div className="mt-3 pt-3 border-t border-[#212739] flex justify-end">
+                            <button
+                              onClick={() => setIsCalendarOpen(false)}
+                              className="px-3 py-1.5 rounded-[8px] bg-[#CCFF00] text-black font-bold text-xs hover:bg-[#B8E600] transition-colors cursor-pointer"
+                            >
+                              Confirmar Data
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
               </div>
 
